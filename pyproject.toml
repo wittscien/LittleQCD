@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fvu"
+version = "0.0.1"
+authors = [
+  { name="Haobo Yan", email="haobo@stu.pku.edu.cn" },
+]
+description = "Little QCD"
+readme = "README.md"
+requires-python = ">=3.8"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "numpy",
+    "scipy",
+    "sympy",
+    "matplotlib",
+    "tqdm",
+    "numba"
+]
+
+[project.urls]
+Homepage = "https://github.com/wittscien/LittleQCD"
