@@ -27,4 +27,4 @@ def set_backend(backend: Literal["numpy", "cupy"]):
         torch.set_default_device("cuda")
         _BACKEND = torch
     else:
-        raise ValueError(R'backend must be "numpy", "cupy" or "torch"')
+        raise ValueError('Backend must be "numpy", "cupy" or "torch"')
