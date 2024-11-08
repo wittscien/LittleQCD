@@ -1,6 +1,8 @@
 from opt_einsum import contract
+from sympy import N
 from lqcd.io.backend import get_backend
 from lqcd.core.geometry import QCD_geometry
+
 
 
 class Field:
@@ -98,55 +100,48 @@ class Propagator(Field):
 
 
 class Gamma:
-    def __init__(self, i):
-        self.mat = self.gamma(i)
+    def __init__(self, i, Nl=4):
+        if Nl == 4:
+            self.mat = self.gamma_4(i)
+        else:
+            raise NotImplementedError("Only Nl=4 is supported")
 
-    def gamma(self, i):
+    def gamma_4(self, i):
         xp = get_backend()
 
-        g0 = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex)
-        g1 = xp.array([[0, 0, 0, 1j], [0, 0, 1j, 0], [0, -1j, 0, 0], [-1j, 0, 0, 0]], dtype=complex)
-        g2 = xp.array([[0, 0, 0, -1], [0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0]], dtype=complex)
-        g3 = xp.array([[0, 0, 1j, 0], [0, 0, 0, -1j], [-1j, 0, 0, 0], [0, 1j, 0, 0]], dtype=complex)
-        g4 = xp.array([[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=complex)
-        g5 = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]], dtype=complex)
+        g = xp.zeros((16, 4, 4), dtype=complex)
 
-        if i == 0:  # identity
-            g = g0
-        elif i == 1:  # gamma1
-            g = g1
-        elif i == 2:  # gamma2
-            g = g2
-        elif i == 3:  # gamma3
-            g = g3
-        elif i == 4:  # gamma4
-            g = g4
-        elif i == 5:  # gamma5
-            g = g5
-        elif i == 6:  # -gamma1*gamma4*gamma5 (gamma2*gamma3)
-            g = xp.matmul(g2, g3)
-        elif i == 7:  # -gamma2*gamma4*gamma5 (gamma3*gamma1)
-            g = xp.matmul(g3, g1)
-        elif i == 8:  # -gamma3*gamma4*gamma5 (gamma1*gamma2)
-            g = xp.matmul(g1, g2)
-        elif i == 9:  # gamma1*gamma4
-            g = xp.matmul(g1, g4)
-        elif i == 10:  # gamma2*gamma4
-            g = xp.matmul(g2, g4)
-        elif i == 11:  # gamma3*gamma4
-            g = xp.matmul(g3, g4)
-        elif i == 12:  # gamma1*gamma5
-            g = xp.matmul(g1, g5)
-        elif i == 13:  # gamma2*gamma5
-            g = xp.matmul(g2, g5)
-        elif i == 14:  # gamma3*gamma5
-            g = xp.matmul(g3, g5)
-        elif i == 15:  # gamma4*gamma5
-            g = xp.matmul(g4, g5)
-        else:
-            raise ValueError("Invalid gamma matrix index")
+        # # Chroma convention, my convention.
+        # g[0] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex)
+        # g[1] = xp.array([[0, 0, 0, 1j], [0, 0, 1j, 0], [0, -1j, 0, 0], [-1j, 0, 0, 0]], dtype=complex)
+        # g[2] = xp.array([[0, 0, 0, -1], [0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0]], dtype=complex)
+        # g[3] = xp.array([[0, 0, 1j, 0], [0, 0, 0, -1j], [-1j, 0, 0, 0], [0, 1j, 0, 0]], dtype=complex)
+        # g[4] = xp.array([[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=complex)
+        # g[5] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]], dtype=complex)
+        # g[6] = g[2] @ g[3] # -gamma1*gamma4*gamma5 (gamma2*gamma3)
+        # g[7] = g[3] @ g[1] # -gamma2*gamma4*gamma5 (gamma3*gamma1)
+        # g[8] = g[1] @ g[2] # -gamma3*gamma4*gamma5 (gamma1*gamma2)
+        # g[9] = g[1] @ g[4] # gamma1*gamma4
+        # g[10] = g[2] @ g[4] # gamma2*gamma4
+        # g[11] = g[3] @ g[4] # gamma3*gamma4
+        # g[12] = g[1] @ g[5] # gamma1*gamma5
+        # g[13] = g[2] @ g[5] # gamma2*gamma5
+        # g[14] = g[3] @ g[5] # gamma3*gamma5
+        # g[15] = g[4] @ g[5] # gamma4*gamma5
 
-        return g
+        # CVC convention.
+        g[0] = xp.array([[0, 0, -1, 0], [0, 0, 0, -1], [-1, 0, 0, 0], [0, -1, 0, 0]], dtype=complex) # gamma_0 = gamma_t
+        g[1] = xp.array([[0, 0, 0, -1j], [0, 0, -1j, 0], [0, 1j, 0, 0], [1j, 0, 0, 0]], dtype=complex) # gamma_1 = gamma_x
+        g[2] = xp.array([[0, 0, 0, -1], [0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0]], dtype=complex) # gamma_2 = gamma_y
+        g[3] = xp.array([[0, 0, -1j, 0], [0, 0, 0, 1j], [1j, 0, 0, 0], [0, -1j, 0, 0]], dtype=complex) # gamma_3 = gamma_z
+        g[4] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex) # gamma_4 = id
+        g[5] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]], dtype=complex)
+        g[6] = g[5] @ g[0] # gamma_6 = gamma_5 gamma_t
+        g[7] = g[5] @ g[1] # gamma_7 = gamma_5 gamma_x
+        g[8] = g[5] @ g[2] # gamma_8 = gamma_5 gamma_y
+        g[9] = g[5] @ g[3] # gamma_9 = gamma_5 gamma_z
+
+        return g[i]
 
     def __mul__(self, other):
         if isinstance(other, Fermion):
