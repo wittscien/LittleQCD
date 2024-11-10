@@ -14,9 +14,9 @@ class QCD_geometry(geometry):
         self.X = geometry[1]
         self.Y = geometry[2]
         self.Z = geometry[3]
-        self.Ns = 4
-        self.Nc = 3
-        self.Nl = 4
+        self.Ns = 4 # spinor
+        self.Nc = 3 # color
+        self.Nl = 4 # Lorentz
 
     def __update__(self, geometry: List[int]):
         self.T = geometry[0]

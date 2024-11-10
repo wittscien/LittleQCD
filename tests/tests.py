@@ -1,10 +1,19 @@
 from lqcd.io.backend import get_backend
 from lqcd.core.geometry import QCD_geometry
-from lqcd.core.fields import Fermion
-from lqcd.core.fields import Gamma
+from lqcd.core.fields import Gauge, Fermion, Gamma, Propagator
+from lqcd.fermion.Wilson import DiracOperator
 
 
 
 geometry = QCD_geometry([4, 4, 4, 8])
-source = Fermion(geometry)
+U = Gauge(geometry)
+U.init_random()
+src = Fermion(geometry)
+src.point_source([0, 0, 0, 0, 0, 0])
 g5 = Gamma(5)
+
+
+params = {'m': 0.1,
+          'csw': 0.1}
+Q = DiracOperator(U, params)
+a = Q.hopping(src)

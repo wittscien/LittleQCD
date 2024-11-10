@@ -1,3 +1,4 @@
+import numbers
 from opt_einsum import contract
 from sympy import N
 from lqcd.io.backend import get_backend
@@ -8,6 +9,14 @@ from lqcd.core.geometry import QCD_geometry
 class Field:
     def __init__(self, geometry: QCD_geometry):
         self.geometry = geometry
+        self.T = geometry.T
+        self.X = geometry.Z
+        self.Y = geometry.Y
+        self.Z = geometry.Z
+        self.Ns = geometry.Ns
+        self.Nc = geometry.Nc
+        self.Nl = geometry.Nl
+
         self.field = 0
 
     def clean(self):
@@ -21,7 +30,7 @@ class Field:
 
     def __add__(self, other):
         if isinstance(other, Field):
-            result = Field(self.geometry)
+            result = type(self)(self.geometry)
             result.field = self.field + other.field
             return result
         else:
@@ -29,7 +38,7 @@ class Field:
 
     def __sub__(self, other):
         if isinstance(other, Field):
-            result = Field(self.geometry)
+            result = type(self)(self.geometry)
             result.field = self.field - other.field
             return result
         else:
@@ -58,6 +67,55 @@ class Gauge(Field):
         else:
             raise ValueError("Invalid number of indices")
 
+    def init_random(self):
+        xp = get_backend()
+        xp.random.seed(0)
+        self.field = xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Nl, self.geometry.Nc, self.geometry.Nc)
+
+    def mu(self, m):
+        mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
+        if m in ['t', 'x', 'y', 'z']:
+            result = GaugeMu(self.geometry)
+            mu = mu_st2num[m]
+            result.field = self.field[:,:,:,:,mu,:,:]
+            return result
+        elif m in ['-t', '-x', '-y', '-z']:
+            xp = get_backend()
+            result = GaugeMu(self.geometry)
+            mu = mu_st2num[m[1]]
+            result.field = xp.conjugate((xp.transpose(xp.roll(self.field, mu, axis=mu)[:,:,:,:,mu,:,:], axes=(0,1,2,3,5,4))))
+            return result
+
+
+class GaugeMu(Field):
+    def __init__(self, geometry: QCD_geometry):
+        xp = get_backend()
+        super().__init__(geometry)
+        self.field = xp.zeros((geometry.T, geometry.X, geometry.Y, geometry.Z, geometry.Nc, geometry.Nc), dtype=xp.complex128)
+
+    def __getitem__(self, pos):
+        # The SU(3) matrix at [t, x, y, z], or the point at [t, x, y, z, a, b]
+        if len(pos) in [4, 6]:
+            return self.field[pos]
+        else:
+            raise ValueError("Invalid number of indices")
+
+    def __setitem__(self, pos, mat):
+        if len(pos) in [4, 6]:
+            self.field[pos] = mat
+        else:
+            raise ValueError("Invalid number of indices")
+
+    def __mul__(self, other):
+        xp = get_backend()
+        # U_mu * psi
+        if isinstance(other, Fermion):
+            result = Fermion(self.geometry)
+            result.field = contract("txyzab, txyzsb -> txyzsa", self.field, other.field)
+            return result
+        else:
+            return TypeError
+
 
 class Fermion(Field):
     def __init__(self, geometry: QCD_geometry):
@@ -77,6 +135,24 @@ class Fermion(Field):
             self.field[pos] = mat
         else:
             raise ValueError("Invalid number of indices")
+
+    def point_source(self, point):
+        xp = get_backend()
+        self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
+        self[point] = 1
+
+    def __mul__(self, other):
+        xp = get_backend()
+        if isinstance(other, numbers.Number):
+            result = Fermion(self.geometry)
+            result.field = self.field * other
+            return result
+        else:
+            return TypeError
+
+    def __rmul__(self, other):
+        if isinstance(other, numbers.Number):
+            return self.__mul__(other)
 
 
 class Propagator(Field):
@@ -143,6 +219,50 @@ class Gamma:
 
         return g[i]
 
+    def __add__(self, other):
+        xp = get_backend()
+        if isinstance(other, Gamma):
+            result = Gamma(0)
+            result.mat = self.mat + other.mat
+            return result
+        elif isinstance(other, int):
+            result = Gamma(0)
+            result.mat = self.mat + xp.eye(4, dtype=complex) * other
+            return result
+        else:
+            return TypeError
+
+    def __sub__(self, other):
+        xp = get_backend()
+        if isinstance(other, Gamma):
+            result = Gamma(0)
+            result.mat = self.mat - other.mat
+            return result
+        elif isinstance(other, int):
+            result = Gamma(0)
+            result.mat = self.mat - xp.eye(4, dtype=complex) * other
+            return result
+        else:
+            return TypeError
+
+    def __radd__(self, other):
+        xp = get_backend()
+        if isinstance(other, int):
+            result = Gamma(0)
+            result.mat = self.mat + xp.eye(4, dtype=complex) * other
+            return result
+        else:
+            return TypeError
+
+    def __rsub__(self, other):
+        xp = get_backend()
+        if isinstance(other, int):
+            result = Gamma(0)
+            result.mat = -self.mat + xp.eye(4, dtype=complex) * other
+            return result
+        else:
+            return TypeError
+
     def __mul__(self, other):
         if isinstance(other, Fermion):
             result = Fermion(other.geometry)
@@ -150,3 +270,6 @@ class Gamma:
             return result
         else:
             return TypeError
+
+    def __repr__(self):
+        return f"{self.mat}"
