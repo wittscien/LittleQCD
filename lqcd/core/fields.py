@@ -100,7 +100,8 @@ class Gauge(Field):
             xp = get_backend()
             result = GaugeMu(self.geometry)
             mu = mu_st2num[m[1]]
-            result.field = xp.conjugate((xp.transpose(self.shift(m).field[:,:,:,:,mu,:,:], axes=(0,1,2,3,5,4))))
+            result.field = self.shift(m).field[:,:,:,:,mu,:,:]
+            result = result.dagger()
             return result
 
     def plaquette(self, mu, nu):
@@ -112,7 +113,14 @@ class Gauge(Field):
     def clover(self, mu, nu):
         mu_neg = self.mu_neg[mu]
         nu_neg = self.mu_neg[nu]
-        result = self.plaqutte(mu, nu) + self.plaqutte(nu, mu_neg) + self.plaqutte(mu_neg, nu_neg) + self.plaqutte(nu_neg, mu)
+        result = self.plaquette(mu, nu) + self.plaquette(nu, mu_neg) + self.plaquette(mu_neg, nu_neg) + self.plaquette(nu_neg, mu)
+        return result
+
+    def field_strength(self, mu, nu):
+        # 2024.11.11: for plaquette and clover, A_ab = A_ba^dagger. The following is tested to be the same. The plaquette or clover.
+        # U.plaquette('t', 'x').field
+        # U.plaquette('x', 't').dagger().field
+        result = (-1j) * (1/4) * (1/2) * (self.clover(mu, nu) - self.clover(nu, mu))
         return result
 
 
@@ -138,7 +146,11 @@ class GaugeMu(Field):
     def __mul__(self, other):
         xp = get_backend()
         # U_mu * psi
-        if isinstance(other, GaugeMu):
+        if isinstance(other, numbers.Number):
+            result = GaugeMu(self.geometry)
+            result.field = self.field * other
+            return result
+        elif isinstance(other, GaugeMu):
             result = GaugeMu(self.geometry)
             result.field = contract("txyzab, txyzbc -> txyzac", self.field, other.field)
             return result
@@ -148,6 +160,16 @@ class GaugeMu(Field):
             return result
         else:
             return TypeError
+
+    def __rmul__(self, other):
+        if isinstance(other, numbers.Number):
+            return self.__mul__(other)
+
+    def dagger(self):
+        xp = get_backend()
+        result = GaugeMu(self.geometry)
+        result.field = xp.conjugate((xp.transpose(self.field, axes=(0,1,2,3,5,4))))
+        return result
 
 
 class Fermion(Field):
@@ -258,7 +280,7 @@ class Gamma:
             result = Gamma(0)
             result.mat = self.mat + other.mat
             return result
-        elif isinstance(other, int):
+        elif isinstance(other, numbers.Number):
             result = Gamma(0)
             result.mat = self.mat + xp.eye(4, dtype=complex) * other
             return result
@@ -271,7 +293,7 @@ class Gamma:
             result = Gamma(0)
             result.mat = self.mat - other.mat
             return result
-        elif isinstance(other, int):
+        elif isinstance(other, numbers.Number):
             result = Gamma(0)
             result.mat = self.mat - xp.eye(4, dtype=complex) * other
             return result
@@ -280,7 +302,7 @@ class Gamma:
 
     def __radd__(self, other):
         xp = get_backend()
-        if isinstance(other, int):
+        if isinstance(other, numbers.Number):
             result = Gamma(0)
             result.mat = self.mat + xp.eye(4, dtype=complex) * other
             return result
@@ -289,7 +311,7 @@ class Gamma:
 
     def __rsub__(self, other):
         xp = get_backend()
-        if isinstance(other, int):
+        if isinstance(other, numbers.Number):
             result = Gamma(0)
             result.mat = -self.mat + xp.eye(4, dtype=complex) * other
             return result
@@ -297,10 +319,24 @@ class Gamma:
             return TypeError
 
     def __mul__(self, other):
-        if isinstance(other, Fermion):
+        if isinstance(other, Gamma):
+            result = Gamma(0)
+            result.mat = self.mat @ other.mat
+            return result
+        elif isinstance(other, Fermion):
             result = Fermion(other.geometry)
             result.field = contract("ab, txyzbc -> txyzac", self.mat, other.field)
             return result
+        elif isinstance(other, numbers.Number):
+            result = Gamma(0)
+            result.mat = self.mat * other
+            return result
+        else:
+            return TypeError
+
+    def __rmul__(self, other):
+        if isinstance(other, numbers.Number):
+            return self.__mul__(other)
         else:
             return TypeError
 
