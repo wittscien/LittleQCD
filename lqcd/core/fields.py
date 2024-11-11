@@ -53,6 +53,8 @@ class Gauge(Field):
         xp = get_backend()
         super().__init__(geometry)
         self.field = xp.zeros((geometry.T, geometry.X, geometry.Y, geometry.Z, geometry.Nl, geometry.Nc, geometry.Nc), dtype=xp.complex128)
+        self.mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
+        self.mu_neg = {'t': '-t', '-t': 't', 'x': '-x', '-x': 'x', 'y': '-y', '-y': 'y', 'z': '-z', '-z': 'z'}
 
     def __getitem__(self, pos):
         # The SU(3) matrix at [t, x, y, z], [t, x, y, z, mu] or the point at [t, x, y, z, mu, a, b]
@@ -72,6 +74,21 @@ class Gauge(Field):
         xp.random.seed(0)
         self.field = xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Nl, self.geometry.Nc, self.geometry.Nc)
 
+    def shift(self, m):
+        xp = get_backend()
+        mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
+        result = Gauge(self.geometry)
+        # U(x+mu)
+        if m in ['t', 'x', 'y', 'z']:
+            dir = +1
+            mu = mu_st2num[m]
+        # U(x-mu)
+        elif m in ['-t', '-x', '-y', '-z']:
+            dir = -1
+            mu = mu_st2num[m[1]]
+        result.field = xp.roll(self.field, -dir*mu, axis=mu)
+        return result
+
     def mu(self, m):
         mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
         if m in ['t', 'x', 'y', 'z']:
@@ -83,8 +100,20 @@ class Gauge(Field):
             xp = get_backend()
             result = GaugeMu(self.geometry)
             mu = mu_st2num[m[1]]
-            result.field = xp.conjugate((xp.transpose(xp.roll(self.field, mu, axis=mu)[:,:,:,:,mu,:,:], axes=(0,1,2,3,5,4))))
+            result.field = xp.conjugate((xp.transpose(self.shift(m).field[:,:,:,:,mu,:,:], axes=(0,1,2,3,5,4))))
             return result
+
+    def plaquette(self, mu, nu):
+        mu_neg = self.mu_neg[mu]
+        nu_neg = self.mu_neg[nu]
+        result = self.mu(mu) * self.shift(mu).mu(nu) * self.shift(mu).shift(nu).mu(mu_neg) * self.shift(nu).mu(nu_neg)
+        return result
+
+    def clover(self, mu, nu):
+        mu_neg = self.mu_neg[mu]
+        nu_neg = self.mu_neg[nu]
+        result = self.plaqutte(mu, nu) + self.plaqutte(nu, mu_neg) + self.plaqutte(mu_neg, nu_neg) + self.plaqutte(nu_neg, mu)
+        return result
 
 
 class GaugeMu(Field):
@@ -109,7 +138,11 @@ class GaugeMu(Field):
     def __mul__(self, other):
         xp = get_backend()
         # U_mu * psi
-        if isinstance(other, Fermion):
+        if isinstance(other, GaugeMu):
+            result = GaugeMu(self.geometry)
+            result.field = contract("txyzab, txyzbc -> txyzac", self.field, other.field)
+            return result
+        elif isinstance(other, Fermion):
             result = Fermion(self.geometry)
             result.field = contract("txyzab, txyzsb -> txyzsa", self.field, other.field)
             return result
