@@ -197,7 +197,6 @@ class Fermion(Field):
         self[point] = 1
 
     def __mul__(self, other):
-        xp = get_backend()
         if isinstance(other, numbers.Number):
             result = Fermion(self.geometry)
             result.field = self.field * other
@@ -208,6 +207,17 @@ class Fermion(Field):
     def __rmul__(self, other):
         if isinstance(other, numbers.Number):
             return self.__mul__(other)
+
+    def dot(self, other):
+        xp = get_backend()
+        if isinstance(other, Fermion):
+            return contract("txyzsc, txyzsc", xp.conjugate(self.field), other.field)
+        else:
+            return TypeError
+
+    def norm(self):
+        xp = get_backend()
+        return xp.sqrt(self.dot(self).real)
 
 
 class Propagator(Field):
