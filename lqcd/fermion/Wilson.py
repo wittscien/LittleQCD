@@ -1,6 +1,6 @@
 from opt_einsum import contract
 from lqcd.io.backend import get_backend
-from lqcd.core.fields import Gauge, GaugeMu, Fermion, Gamma, Propagator
+from lqcd.core.fields import Gauge, GaugeMu, Fermion, Gamma, Propagator, sigma_munu
 import lqcd.utils.utils as ut
 
 
@@ -46,7 +46,7 @@ class DiracOperator:
                 fwdmu = self.mu_num2st[mu][0]
                 fwdnu = self.mu_num2st[nu][0]
                 # 2024.11.13: On the flight back to Beijing: it is checked that the order of applying gamma and gauge to the src does not matter.
-                dst += self.csw * (1 / 2) * ut.sigma_munu(mu, nu) * (self.U.field_strength(fwdmu, fwdnu) * src)
+                dst += self.csw * (1 / 2) * sigma_munu(mu, nu) * (self.U.field_strength(fwdmu, fwdnu) * src)
         return dst
 
     def twisted_mass(self, src, flavor):

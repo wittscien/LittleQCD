@@ -3,6 +3,7 @@ from opt_einsum import contract
 from sympy import N
 from lqcd.io.backend import get_backend
 from lqcd.core.geometry import QCD_geometry
+import lqcd.utils.utils as ut
 
 
 
@@ -10,7 +11,7 @@ class Field:
     def __init__(self, geometry: QCD_geometry):
         self.geometry = geometry
         self.T = geometry.T
-        self.X = geometry.Z
+        self.X = geometry.X
         self.Y = geometry.Y
         self.Z = geometry.Z
         self.Ns = geometry.Ns
@@ -72,7 +73,16 @@ class Gauge(Field):
     def init_random(self):
         xp = get_backend()
         xp.random.seed(0)
-        self.field = xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Nl, self.geometry.Nc, self.geometry.Nc)
+        self.field = xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Nl, self.geometry.Nc, self.geometry.Nc) + 1j * xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Nl, self.geometry.Nc, self.geometry.Nc)
+        self.proj_su3()
+
+    def proj_su3(self):
+        for t in range(self.T):
+            for x in range(self.X):
+                for y in range(self.Y):
+                    for z in range(self.Z):
+                        for mu in range(self.Nl):
+                            self.field[t, x, y, z, mu] = ut.proj_su3(self.field[t, x, y, z, mu])
 
     def shift(self, m):
         xp = get_backend()
@@ -103,6 +113,9 @@ class Gauge(Field):
             result.field = self.shift(m).field[:,:,:,:,mu,:,:]
             result = result.dagger()
             return result
+
+    def set_mu(self, mu, Umu):
+        self.field[:,:,:,:,mu,:,:] = Umu.field
 
     def plaquette(self, mu, nu):
         mu_neg = self.mu_neg[mu]
@@ -352,3 +365,7 @@ class Gamma:
 
     def __repr__(self):
         return f"{self.mat}"
+
+
+def sigma_munu(mu, nu):
+    return (1 / 2j) * (Gamma(mu) * Gamma(nu) - Gamma(nu) * Gamma(mu))
