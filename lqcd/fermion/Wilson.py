@@ -9,6 +9,7 @@ class DiracOperator:
     def __init__(self, U: Gauge, params):
         self.U = U
         self.geometry = U.geometry
+        self.fermion_type = params['fermion_type']
         if 'm' in params:
             assert 'kappa' not in params
             self.m = params["m"]
@@ -56,5 +57,16 @@ class DiracOperator:
             tau3_sign = -1
         return 1j * self.mu * (Gamma(5) * (tau3_sign * src))
 
-    def Dirac_twisted_mass_clover(self, src, flavor):
-        return self.hopping(src) + self.mass(src) + self.clover(src) + self.twisted_mass(src, flavor)
+    def Dirac(self, src, flavor):
+        if self.fermion_type == 'twisted_mass_clover':
+            return self.hopping(src) + self.mass(src) + self.clover(src) + self.twisted_mass(src, flavor)
+
+
+# twisted mass rotation
+def tm_rotation(src, flavor):
+    xp = get_backend()
+    if flavor == 'u':
+        tau3_sign = 1
+    elif flavor == 'd':
+        tau3_sign = -1
+    return ((1 / xp.sqrt(2)) * (1 + 1j * Gamma(5) * tau3_sign)) * src

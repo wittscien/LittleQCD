@@ -1,7 +1,7 @@
 from opt_einsum import contract
 from lqcd.io.backend import get_backend
 from lqcd.core.fields import Gauge, GaugeMu, Fermion, Gamma, Propagator
-from lqcd.fermion.Wilson import DiracOperator
+from lqcd.fermion.Wilson import DiracOperator, tm_rotation
 import lqcd.utils.utils as ut
 
 
@@ -9,12 +9,14 @@ import lqcd.utils.utils as ut
 class Inverter:
     def __init__(self, D: DiracOperator, params):
         self.D = D
+        self.method = params["method"]
         self.tol = params["tol"]
         self.maxit = params["maxit"]
+        self.check_residual = params["check_residual"]
         self.geometry = D.geometry
 
     def BiCGStab(self, b, x0, flavor):
-        r0 = b - self.D.Dirac_twisted_mass_clover(x0, flavor)
+        r0 = b - self.D.Dirac(x0, flavor)
         r0_prime = Fermion(self.geometry)
         r0_prime.field = r0.field
         rho = alpha = omega = 1
@@ -32,7 +34,7 @@ class Inverter:
             beta = (rho_new / rho) * (alpha / omega)
             rho = rho_new
             p = r0 + beta * (p - omega * v)
-            v = self.D.Dirac_twisted_mass_clover(p, flavor)
+            v = self.D.Dirac(p, flavor)
             alpha = rho / r0_prime.dot(v)
 
             s = r0 - alpha * v
@@ -40,7 +42,7 @@ class Inverter:
                 x += alpha * p
                 break
 
-            t = self.D.Dirac_twisted_mass_clover(s, flavor)
+            t = self.D.Dirac(s, flavor)
             omega = t.dot(s) / t.dot(t)
 
             x += alpha * p + omega * s
@@ -52,6 +54,35 @@ class Inverter:
         print("BiCGStab: Converged in {} iterations.".format(cnt))
         return x
 
+    def invert(self, b, x0, flavor):
+        # src rotation
+        if self.D.fermion_type == 'twisted_mass_clover':
+            src_temp = tm_rotation(b, flavor)
+        else:
+            src_temp = b
+        if self.method == 'BiCGStab':
+            prop_temp = self.BiCGStab(src_temp, x0, flavor)
+        # Check residual
+        if self.check_residual:
+            print((self.D.Dirac(prop_temp, 'u') - src_temp).norm())
+        # snk rotation
+        if self.D.fermion_type == 'twisted_mass_clover':
+            prop_pb = tm_rotation(prop_temp, flavor)
+        else:
+            prop_pb = prop_temp
+        return prop_pb
+
+
+def propagator(Q, inv_params, src_list, flavor):
+    # src_list is 4 x 3
+    x0 = Fermion(geometry)
+    Inv = Inverter(Q, inv_params)
+    prop = Propagator(geometry)
+    for s in range(4):
+        for c in range(3):
+            src = src_list[s][c]
+            prop.field[:,:,:,:,:,s,:,c] = Inv.invert(src, x0, 'u').field
+    return prop
 
 
 if __name__ == "__main__":
@@ -66,9 +97,21 @@ if __name__ == "__main__":
     src = Fermion(geometry)
     src.point_source([0, 0, 0, 0, 0, 0])
 
-    Q = DiracOperator(U, {'m': 3, 'mu': 0.1, 'csw': 0.1})
-    Inv = Inverter(Q, {"tol": 1e-9, "maxit": 500})
+    Q = DiracOperator(U, {'fermion_type':'twisted_mass_clover', 'm': 3, 'mu': 0.1, 'csw': 0.1})
+    Inv = Inverter(Q, {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": True})
     x0 = Fermion(geometry)
-    prop = Inv.BiCGStab(src, x0, 'u')
+    prop = Inv.invert(src, x0, 'u')
 
-    print((Q.Dirac_twisted_mass_clover(prop, 'u') - src).norm())
+    # Check residual in the physical basis. But since for tm rotation, the residual is not zero.
+    # print((Q.Dirac(prop, 'u') - src).norm())
+
+    # The full propagator
+    inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False}
+    src_list = []
+    for s in range(4):
+        src_list.append([])
+        for c in range(3):
+            src = Fermion(geometry)
+            src.point_source([0, 0, 0, 0, s, c])
+            src_list[s].append(src)
+    prop = propagator(Q, inv_params, src_list, 'u')
