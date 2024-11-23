@@ -9,7 +9,7 @@ import lqcd.utils.utils as ut
 set_backend("numpy")
 xp = get_backend()
 
-geometry = QCD_geometry([4, 4, 4, 8])
+geometry = QCD_geometry([8, 4, 4, 4])
 U = Gauge(geometry)
 U.init_random()
 src = Fermion(geometry)

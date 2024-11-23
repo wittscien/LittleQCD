@@ -207,7 +207,7 @@ class Fermion(Field):
     def point_source(self, point):
         xp = get_backend()
         self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
-        self[point] = 1
+        self.field[point[0],point[1],point[2],point[3],point[4],point[5]] = 1
 
     def __mul__(self, other):
         if isinstance(other, numbers.Number):
