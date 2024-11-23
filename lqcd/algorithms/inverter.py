@@ -73,14 +73,15 @@ class Inverter:
         return prop_pb
 
 
-def propagator(Q, inv_params, src_list, flavor):
+def propagator(Q, inv_params, srcfull, flavor):
     # src_list is 4 x 3
     x0 = Fermion(geometry)
     Inv = Inverter(Q, inv_params)
     prop = Propagator(geometry)
     for s in range(4):
         for c in range(3):
-            src = src_list[s][c]
+            src = Fermion(geometry)
+            src.field = srcfull.field[:,:,:,:,:,s,:,c]
             prop.field[:,:,:,:,:,s,:,c] = Inv.invert(src, x0, 'u').field
     return prop
 
@@ -107,11 +108,10 @@ if __name__ == "__main__":
 
     # The full propagator
     inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False}
-    src_list = []
+    srcfull = Propagator(geometry)
     for s in range(4):
-        src_list.append([])
         for c in range(3):
             src = Fermion(geometry)
             src.point_source([0, 0, 0, 0, s, c])
-            src_list[s].append(src)
-    prop = propagator(Q, inv_params, src_list, 'u')
+            srcfull.field[:,:,:,:,:,s,:,c] = src.field
+    prop = propagator(Q, inv_params, srcfull, 'u')

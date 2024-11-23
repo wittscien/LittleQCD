@@ -237,6 +237,7 @@ class Propagator(Field):
     def __init__(self, geometry: QCD_geometry):
         xp = get_backend()
         super().__init__(geometry)
+        # spin sink, spin source, color sink, color source
         self.field = xp.zeros((geometry.T, geometry.X, geometry.Y, geometry.Z, geometry.Ns, geometry.Ns, geometry.Nc, geometry.Nc), dtype=xp.complex128)
 
     def __getitem__(self, pos):
