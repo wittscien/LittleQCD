@@ -27,7 +27,7 @@ class Field:
         if isinstance(other, Field):
             return self.field == other.field
         else:
-            return TypeError
+            return NotImplemented
 
     def __add__(self, other):
         if isinstance(other, Field):
@@ -35,7 +35,7 @@ class Field:
             result.field = self.field + other.field
             return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __sub__(self, other):
         if isinstance(other, Field):
@@ -43,7 +43,7 @@ class Field:
             result.field = self.field - other.field
             return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __repr__(self):
         return f"{self.field}"
@@ -172,11 +172,13 @@ class GaugeMu(Field):
             result.field = contract("txyzab, txyzsb -> txyzsa", self.field, other.field)
             return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __rmul__(self, other):
         if isinstance(other, numbers.Number):
             return self.__mul__(other)
+        else:
+            return NotImplemented
 
     def dagger(self):
         xp = get_backend()
@@ -215,7 +217,7 @@ class Fermion(Field):
             result.field = self.field * other
             return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __rmul__(self, other):
         if isinstance(other, numbers.Number):
@@ -226,7 +228,7 @@ class Fermion(Field):
         if isinstance(other, Fermion):
             return contract("txyzsc, txyzsc", xp.conjugate(self.field), other.field)
         else:
-            return TypeError
+            return NotImplemented
 
     def norm(self):
         xp = get_backend()
@@ -309,7 +311,7 @@ class Gamma:
             result.mat = self.mat + xp.eye(4, dtype=complex) * other
             return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __sub__(self, other):
         xp = get_backend()
@@ -322,7 +324,7 @@ class Gamma:
             result.mat = self.mat - xp.eye(4, dtype=complex) * other
             return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __radd__(self, other):
         xp = get_backend()
@@ -331,7 +333,7 @@ class Gamma:
             result.mat = self.mat + xp.eye(4, dtype=complex) * other
             return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __rsub__(self, other):
         xp = get_backend()
@@ -340,7 +342,7 @@ class Gamma:
             result.mat = -self.mat + xp.eye(4, dtype=complex) * other
             return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __mul__(self, other):
         if isinstance(other, Gamma):
@@ -348,21 +350,30 @@ class Gamma:
             result.mat = self.mat @ other.mat
             return result
         elif isinstance(other, Fermion):
+            # capital: spin; small: color
             result = Fermion(other.geometry)
-            result.field = contract("ab, txyzbc -> txyzac", self.mat, other.field)
+            result.field = contract("CB, txyzBa -> txyzCa", self.mat, other.field)
+            return result
+        elif isinstance(other, Propagator):
+            result = Propagator(other.geometry)
+            result.field = contract("CB, txyzBAba -> txyzCAba", self.mat, other.field)
             return result
         elif isinstance(other, numbers.Number):
             result = Gamma(0)
             result.mat = self.mat * other
             return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __rmul__(self, other):
         if isinstance(other, numbers.Number):
             return self.__mul__(other)
+        elif isinstance(other, Propagator):
+            result = Propagator(other.geometry)
+            result.field = contract("txyzBAba, AC -> txyzBCba", other.field, self.mat)
+            return result
         else:
-            return TypeError
+            return NotImplemented
 
     def __repr__(self):
         return f"{self.mat}"
