@@ -293,10 +293,16 @@ class Gamma:
         g[3] = xp.array([[0, 0, -1j, 0], [0, 0, 0, 1j], [1j, 0, 0, 0], [0, -1j, 0, 0]], dtype=complex) # gamma_3 = gamma_z
         g[4] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex) # gamma_4 = id
         g[5] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]], dtype=complex)
-        g[6] = g[5] @ g[0] # gamma_6 = gamma_5 gamma_t
-        g[7] = g[5] @ g[1] # gamma_7 = gamma_5 gamma_x
-        g[8] = g[5] @ g[2] # gamma_8 = gamma_5 gamma_y
-        g[9] = g[5] @ g[3] # gamma_9 = gamma_5 gamma_z
+        g[6] = g[0] @ g[5]
+        g[7] = g[1] @ g[5]
+        g[8] = g[2] @ g[5]
+        g[9] = g[3] @ g[5]
+        g[10] = g[0] @ g[1]
+        g[11] = g[0] @ g[2]
+        g[12] = g[0] @ g[3]
+        g[13] = g[1] @ g[2]
+        g[14] = g[1] @ g[3]
+        g[15] = g[2] @ g[3]
 
         return g[i]
 
