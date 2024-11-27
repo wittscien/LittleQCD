@@ -5,6 +5,7 @@ from lqcd.fermion.Wilson import DiracOperator
 from lqcd.fermion.smear import Smear
 from lqcd.algorithms.inverter import Inverter, propagator
 import lqcd.utils.utils as ut
+import lqcd.measurements.contract_funcs as cf
 
 
 
@@ -36,8 +37,13 @@ for s in range(4):
         srcfull.field[:,:,:,:,:,s,:,c] = src.field
 
 # Propagator
-prop = propagator(Q, inv_params, srcfull, 'u')
+Su = propagator(Q, inv_params, srcfull, 'u')
+Sd = propagator(Q, inv_params, srcfull, 'd')
 
 #%%
 # Contraction
-# fp3 = cg5 * prop * cg5
+cg5 = 1j * Gamma(1) * Gamma(3)
+GSdG = cg5 * Sd * cg5
+t1 = cf.T1(Su, GSdG, Su)
+t2 = cf.T2(Su, GSdG, Su)
+corr = cf.mom_proj(t1+t2, [0,0,0])

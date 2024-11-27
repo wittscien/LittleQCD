@@ -17,6 +17,7 @@ class Smear:
         self.mu_neg = {'t': '-t', '-t': 't', 'x': '-x', '-x': 'x', 'y': '-y', '-y': 'y', 'z': '-z', '-z': 'z'}
 
     def Jacobi_smear(self):
+        xp = get_backend()
         result = Fermion(self.geometry)
         psiold = Fermion(self.geometry)
         result.field = self.psi.field

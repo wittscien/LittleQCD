@@ -75,6 +75,7 @@ class Inverter:
 
 def propagator(Q, inv_params, srcfull, flavor):
     # src_list is 4 x 3
+    geometry = Q.geometry
     x0 = Fermion(geometry)
     Inv = Inverter(Q, inv_params)
     prop = Propagator(geometry)
