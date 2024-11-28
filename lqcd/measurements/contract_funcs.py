@@ -10,6 +10,11 @@ def epsilon_3d():
     epsilon[0, 2, 1] = epsilon[2, 1, 0] = epsilon[1, 0, 2] = -1
     return epsilon
 
+# Meson
+def pion(Su, Sd):
+    xp = get_backend()
+    return contract('txyzBAba,txyzBAba->txyz', Su.field, xp.conjugate(Sd.field))
+
 # Baryon cross
 def T1(A, B, C):
     # A, B, C: propagator type
@@ -24,16 +29,26 @@ def T2(A, B, C):
 # Momentum projection
 def mom_proj(corr, momvec):
     xp = get_backend()
-    T, Lx, Ly, Lz, dim1, dim2 = corr.shape
+    if corr.ndim == 6:
+        T, Lx, Ly, Lz, dim1, dim2 = corr.shape
+        corr_type = 'baryon'
+    elif corr.ndim == 4:
+        T, Lx, Ly, Lz = corr.shape
+        corr_type = 'meson'
     px, py, pz = momvec
     x = xp.arange(Lx)
     y = xp.arange(Ly)
     z = xp.arange(Lz)
     X, Y, Z = xp.meshgrid(x, y, z, indexing='ij')
     phase = xp.exp(-1j * 2 * xp.pi * px * X / Lx) * xp.exp(-1j * 2 * xp.pi * py * Y / Ly) * xp.exp(-1j * 2 * xp.pi * pz * Z / Lz)
-    projected_corr = xp.zeros((T, dim1, dim2), dtype=complex)
-    for t in range(T):
-        for mu in range(dim1):
-            for nu in range(dim2):
-                projected_corr[t, mu, nu] = xp.sum(corr[t, :, :, :, mu, nu] * phase)
+    if corr_type == 'baryon':
+        projected_corr = xp.zeros((T, dim1, dim2), dtype=complex)
+        for t in range(T):
+            for mu in range(dim1):
+                for nu in range(dim2):
+                    projected_corr[t, mu, nu] = xp.sum(corr[t, :, :, :, mu, nu] * phase)
+    elif corr_type == 'meson':
+        projected_corr = xp.zeros(T, dtype=complex)
+        for t in range(T):
+            projected_corr[t] = xp.sum(corr[t] * phase)
     return projected_corr

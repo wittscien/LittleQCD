@@ -23,7 +23,8 @@ dependencies = [
     "sympy",
     "matplotlib",
     "tqdm",
-    "numba"
+    "numba",
+    "h5py",
 ]
 
 [project.urls]

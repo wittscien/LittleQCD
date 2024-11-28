@@ -1,4 +1,5 @@
 import numbers
+import h5py
 from opt_einsum import contract
 from sympy import N
 from lqcd.io.backend import get_backend
@@ -70,9 +71,25 @@ class Gauge(Field):
         else:
             raise ValueError("Invalid number of indices")
 
+    def read(self, filename):
+        with h5py.File(filename, 'r') as f:
+            self.field = f['field'][()]
+
+    def write(self, filename):
+        with h5py.File(filename, 'w') as f:
+            f.create_dataset('field', data=self.field)
+
+    def init_trivial(self):
+        xp = get_backend()
+        for t in range(self.T):
+            for x in range(self.X):
+                for y in range(self.Y):
+                    for z in range(self.Z):
+                        for mu in range(self.Nl):
+                            self.field[t, x, y, z, mu] = xp.identity(self.Nc)
+
     def init_random(self):
         xp = get_backend()
-        xp.random.seed(0)
         self.field = xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Nl, self.geometry.Nc, self.geometry.Nc) + 1j * xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Nl, self.geometry.Nc, self.geometry.Nc)
         self.proj_su3()
 
@@ -96,10 +113,11 @@ class Gauge(Field):
         elif m in ['-t', '-x', '-y', '-z']:
             dir = -1
             mu = mu_st2num[m[1]]
-        result.field = xp.roll(self.field, -dir*mu, axis=mu)
+        result.field = xp.roll(self.field, -dir, axis=mu)
         return result
 
     def mu(self, m):
+        # Return a GaugeMu object.
         mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
         if m in ['t', 'x', 'y', 'z']:
             result = GaugeMu(self.geometry)
@@ -114,14 +132,43 @@ class Gauge(Field):
             result = result.dagger()
             return result
 
+    def x_mu(self, t, x, y, z, m):
+        # Return a SU(3) matrix at [t, x, y, z, mu].
+        mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
+        if m in ['t', 'x', 'y', 'z']:
+            mu = mu_st2num[m]
+            mat = self.field[t,x,y,z,mu,:,:]
+            return mat
+        elif m in ['-t', '-x', '-y', '-z']:
+            xp = get_backend()
+            mu = mu_st2num[m[1]]
+            mat = self.shift(m).field[t,x,y,z,mu,:,:]
+            mat = xp.conjugate(xp.transpose(mat))
+            return mat
+
     def set_mu(self, mu, Umu):
         self.field[:,:,:,:,mu,:,:] = Umu.field
 
     def plaquette(self, mu, nu):
         mu_neg = self.mu_neg[mu]
         nu_neg = self.mu_neg[nu]
+        # Periodic boundary condition is assumed by writing this way.
         result = self.mu(mu) * self.shift(mu).mu(nu) * self.shift(mu).shift(nu).mu(mu_neg) * self.shift(nu).mu(nu_neg)
         return result
+
+    def plaquette_action(self):
+        # No beta / N factor.
+        xp = get_backend()
+        S = 0
+        for mu in range(self.Nl - 1):
+            for nu in range(mu + 1, self.Nl):
+                plaq = self.plaquette(self.mu_num2st[mu][0], self.mu_num2st[nu][0])
+                for t in range(self.T):
+                    for x in range(self.X):
+                        for y in range(self.Y):
+                            for z in range(self.Z):
+                                S += (xp.identity(self.Nc) - plaq[t,x,y,z]).trace().real
+        return S
 
     def clover(self, mu, nu):
         mu_neg = self.mu_neg[mu]
@@ -387,3 +434,22 @@ class Gamma:
 
 def sigma_munu(mu, nu):
     return (1 / 2j) * (Gamma(mu) * Gamma(nu) - Gamma(nu) * Gamma(mu))
+
+
+
+if __name__ == "__main__":
+    from lqcd.io.backend import set_backend
+    set_backend("numpy")
+    xp = get_backend()
+
+    geometry = QCD_geometry([8, 4, 4, 4])
+    U = Gauge(geometry)
+    U.init_random()
+
+    # Test the boundary condition.
+    plaq_GaugeMu = U.plaquette('t','x').field[3,3,1,2]
+    plaq_mat = U.field[3,3,1,2,0] @ U.field[4,3,1,2,1] @ xp.conjugate(xp.transpose(U.field[3,0,1,2,0])) @ xp.conjugate(xp.transpose(U.field[3,3,1,2,1]))
+    print(plaq_GaugeMu - plaq_mat)
+
+    print(U.shift('x')[3,3,1,2,0] - U.field[3,0,1,2,0])
+    print(U.shift('t')[3,3,1,2,0] - U.field[4,3,1,2,0])
