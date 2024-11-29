@@ -193,6 +193,26 @@ class Gauge(Field):
         result = (-1j) * (1/4) * (1/2) * (self.clover(mu, nu) - self.clover(nu, mu))
         return result
 
+    def Cmunu(self, mu, nu):
+        # For smearing, see P. 143 of Gattringer and Lang.
+        # o ----→---- o
+        # |           |
+        # ↑           ↓
+        # |           |
+        # o           o
+        #       +
+        # o           o
+        # |           |
+        # ↓           ↑
+        # |           |
+        # o ----→---- o
+        fwdmu = self.mu_num2st[mu][0]
+        fwdnu = self.mu_num2st[nu][0]
+        bwdmu = self.mu_num2st[mu][1]
+        bwdnu = self.mu_num2st[nu][1]
+        result = self.mu(fwdnu) * self.shift(fwdnu).mu(fwdmu) * self.shift(fwdnu).shift(fwdmu).mu(bwdnu) + self.mu(bwdnu) * self.shift(bwdnu).mu(fwdmu) * self.shift(bwdnu).shift(fwdmu).mu(bwdnu)
+        return result
+
 
 class GaugeMu(Field):
     def __init__(self, geometry: QCD_geometry):

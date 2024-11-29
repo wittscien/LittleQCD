@@ -25,10 +25,7 @@ class Smear:
                 for nu in [1,2,3]:
                     if mu == nu: continue
                     fwdmu = self.mu_num2st[mu][0]
-                    fwdnu = self.mu_num2st[nu][0]
-                    bwdmu = self.mu_num2st[mu][1]
-                    bwdnu = self.mu_num2st[nu][1]
-                    result.set_mu(mu, Uold.mu(fwdmu) + self.alpha * (Uold.mu(fwdnu) * Uold.shift(fwdnu).mu(fwdmu) * Uold.shift(fwdnu).shift(fwdmu).mu(bwdnu) + Uold.mu(bwdnu) * Uold.shift(bwdnu).mu(fwdmu) * Uold.shift(bwdnu).shift(fwdmu).mu(bwdnu)))
+                    result.set_mu(mu, Uold.mu(fwdmu) + self.alpha * (self.Cmunu(mu,nu)))
                 result.proj_su3()
         return result
 
