@@ -29,10 +29,10 @@ class MonteCarlo:
         for step in range(self.n_steps):
             Unew = self.metropolis(self.confs[step])
             self.confs.append(Unew)
-            if step % 10 == 0:
-                print(f"Step {step}/{self.n_steps}: Action = {self.beta / self.geometry.Nc * Unew.plaquette_action()}")
-                if step >= self.n_therm and (step - self.n_therm) % self.n_take == 0:
-                    Unew.write("confs/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, step))
+            # if step % 10 == 0:
+            #     print(f"Step {step}/{self.n_steps}: Action = {self.beta / self.geometry.Nc * Unew.plaquette_action()}")
+            if step >= self.n_therm and (step - self.n_therm) % self.n_take == 0:
+                Unew.write("confs/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, step))
         self.acceptance_rate /= self.n_steps * self.geometry.T * self.geometry.X * self.geometry.Y * self.geometry.Z * self.geometry.Nl * self.n_hit
         print(f"Acceptance rate = {self.acceptance_rate}")
 
@@ -99,7 +99,7 @@ if __name__ == "__main__":
 
     geo_vec = [8, 4, 4, 4]
     geometry = QCD_geometry(geo_vec)
-    mc_params = {"geometry": geo_vec, "beta": 6.0, "n_steps": 1000, "n_hit": 3, "n_therm": 100, "n_take": 2, "eps": 0.05}
+    mc_params = {"geometry": geo_vec, "beta": 6.0, "n_steps": 1000, "n_hit": 3, "n_therm": 100, "n_take": 20, "eps": 0.05}
     MC = MonteCarlo(mc_params)
     MC.Markov()
     MC.plaquette_plot()
