@@ -33,7 +33,7 @@ for i in tqdm.tqdm(range(len(confs))):
 
     # Gauge smear
     Smr = gSmear(U, {"tech": "APE", "alpha": 0.1, "niter": 10})
-    U = Smr.APE_smear_space()
+    U = Smr.APE_space()
 
     # Boundary condition
     U = U.apply_boundary_condition_periodic_quark()

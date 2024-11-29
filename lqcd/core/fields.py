@@ -1,5 +1,6 @@
 import numbers
 import h5py
+import scipy as sp
 from opt_einsum import contract
 from sympy import N
 from lqcd.io.backend import get_backend
@@ -141,6 +142,8 @@ class Gauge(Field):
             result.field = self.shift(m).field[:,:,:,:,mu,:,:]
             result = result.dagger()
             return result
+        else:
+            raise ValueError("Invalid direction.")
 
     def x_mu(self, t, x, y, z, m):
         # Return a SU(3) matrix at [t, x, y, z, mu].
@@ -233,6 +236,18 @@ class GaugeMu(Field):
         else:
             raise ValueError("Invalid number of indices")
 
+    def __sub__(self, other):
+        if isinstance(other, GaugeMu):
+            result = GaugeMu(self.geometry)
+            result.field = self.field - other.field
+            return result
+        elif isinstance(other, Scalar):
+            result = GaugeMu(self.geometry)
+            result.field = self.field - other.field[..., xp.newaxis, xp.newaxis] * xp.eye(self.Nc)
+            return result
+        else:
+            return NotImplemented
+
     def __mul__(self, other):
         xp = get_backend()
         # U_mu * psi
@@ -262,6 +277,52 @@ class GaugeMu(Field):
         result = GaugeMu(self.geometry)
         result.field = xp.conjugate((xp.transpose(self.field, axes=(0,1,2,3,5,4))))
         return result
+
+    def trace(self):
+        result = Scalar(self.geometry)
+        result.field = contract("txyzaa -> txyz", self.field)
+        return result
+
+    def antihermitian_traceless(self):
+        result = 1/2 * (self - self.dagger()) - (1/6) * (self - self.dagger()).trace()
+        return result
+
+    def to_exp(self):
+        result = GaugeMu(self.geometry)
+        for t in range(self.geometry.T):
+            for x in range(self.geometry.X):
+                for y in range(self.geometry.Y):
+                    for z in range(self.geometry.Z):
+                        result.field[t,x,y,z] = sp.linalg.expm(self.field[t,x,y,z])
+        return result
+
+
+class Scalar(Field):
+    def __init__(self, geometry: QCD_geometry):
+        xp = get_backend()
+        super().__init__(geometry)
+        self.field = xp.zeros((geometry.T, geometry.X, geometry.Y, geometry.Z), dtype=xp.complex128)
+
+    def __getitem__(self, pos):
+        return self.field[pos]
+
+    def __setitem__(self, pos, mat):
+        self.field[pos] = mat
+
+    def __mul__(self, other):
+        xp = get_backend()
+        if isinstance(other, numbers.Number):
+            result = Scalar(self.geometry)
+            result.field = self.field * other
+            return result
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, numbers.Number):
+            return self.__mul__(other)
+        else:
+            return NotImplemented
 
 
 class Fermion(Field):
@@ -477,9 +538,16 @@ if __name__ == "__main__":
     U.init_random()
 
     # Test the boundary condition.
-    plaq_GaugeMu = U.plaquette('t','x').field[3,3,1,2]
-    plaq_mat = U.field[3,3,1,2,0] @ U.field[4,3,1,2,1] @ xp.conjugate(xp.transpose(U.field[3,0,1,2,0])) @ xp.conjugate(xp.transpose(U.field[3,3,1,2,1]))
-    print(plaq_GaugeMu - plaq_mat)
+    if 0:
+        plaq_GaugeMu = U.plaquette('t','x').field[3,3,1,2]
+        plaq_mat = U.field[3,3,1,2,0] @ U.field[4,3,1,2,1] @ xp.conjugate(xp.transpose(U.field[3,0,1,2,0])) @ xp.conjugate(xp.transpose(U.field[3,3,1,2,1]))
+        print(plaq_GaugeMu - plaq_mat)
 
-    print(U.shift('x')[3,3,1,2,0] - U.field[3,0,1,2,0])
-    print(U.shift('t')[3,3,1,2,0] - U.field[4,3,1,2,0])
+        print(U.shift('x')[3,3,1,2,0] - U.field[3,0,1,2,0])
+        print(U.shift('t')[3,3,1,2,0] - U.field[4,3,1,2,0])
+
+    # Test the antihermitian_traceless part.
+    if 0:
+        U_ahtl = U.mu('y').antihermitian_traceless()
+        B = U_ahtl.field[3,3,1,2]
+        print(B + xp.conjugate(xp.transpose(B)), xp.trace(B))

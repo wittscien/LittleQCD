@@ -1,3 +1,4 @@
+import scipy as sp
 from opt_einsum import contract
 from lqcd.io.backend import get_backend
 from lqcd.core.fields import Gauge, GaugeMu
@@ -12,21 +13,46 @@ class Smear:
         if params['tech'] == 'APE':
             self.alpha = params["alpha"]
             self.niter = params["niter"]
+        elif params['tech'] == 'Stout':
+            self.alpha = params["rho"]
+            self.niter = params["niter"]
         self.mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
         self.mu_neg = {'t': '-t', '-t': 't', 'x': '-x', '-x': 'x', 'y': '-y', '-y': 'y', 'z': '-z', '-z': 'z'}
 
-    def APE_smear_space(self):
+    def APE_space(self):
+        xp = get_backend()
         result = Gauge(self.geometry)
         Uold = Gauge(self.geometry)
-        result.field = self.U.field
+        result.field = xp.copy(self.U.field)
         for _ in range(self.niter):
-            Uold.field = result.field
+            Uold.field = xp.copy(result.field)
             for mu in [1,2,3]:
+                temp = GaugeMu(self.geometry)
                 for nu in [1,2,3]:
                     if mu == nu: continue
                     fwdmu = self.mu_num2st[mu][0]
-                    result.set_mu(mu, Uold.mu(fwdmu) + self.alpha * (self.Cmunu(mu,nu)))
+                    temp += self.alpha * Uold.Cmunu(mu,nu)
+                result.set_mu(mu, Uold.mu(fwdmu) + temp)
                 result.proj_su3()
+        return result
+
+    def Stout(self):
+        xp = get_backend()
+        result = Gauge(self.geometry)
+        Uold = Gauge(self.geometry)
+        result.field = xp.copy(self.U.field)
+        for _ in range(self.niter):
+            Uold.field = xp.copy(result.field)
+            for mu in [0,1,2,3]:
+                temp = GaugeMu(self.geometry)
+                for nu in [0,1,2,3]:
+                    if mu == nu: continue
+                    fwdmu = self.mu_num2st[mu][0]
+                    temp += self.rho * Uold.Cmunu(mu,nu)
+                Omegamu = temp * Uold.mu(fwdmu).dagger()
+                Qmu = Omegamu.antihermitian_traceless() # Gattringer is -i times this.
+                # U' = exp(Q)U
+                result.set_mu(mu, Qmu.to_exp() * Uold)
         return result
 
 
@@ -41,5 +67,10 @@ if __name__ == "__main__":
     U = Gauge(geometry)
     U.init_random()
 
+    # APE
     Smr = Smear(U, {"tech": "APE", "alpha": 0.1, "niter": 2})
-    U2 = Smr.APE_smear_space()
+    U2 = Smr.APE_space()
+
+    # Stout
+    Smr = Smear(U, {"tech": "Stout", "rho": 0.1, "niter": 2})
+    U2 = Smr.APE_space()
