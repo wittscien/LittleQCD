@@ -216,6 +216,17 @@ class Gauge(Field):
         result = self.mu(fwdnu) * self.shift(fwdnu).mu(fwdmu) * self.shift(fwdnu).shift(fwdmu).mu(bwdnu) + self.mu(bwdnu) * self.shift(bwdnu).mu(fwdmu) * self.shift(bwdnu).shift(fwdmu).mu(bwdnu)
         return result
 
+    def Qmu(self, mu):
+        # For smearing. rho is factored out.
+        temp = GaugeMu(self.geometry)
+        for nu in self.Nl:
+            if mu == nu: continue
+            fwdmu = self.mu_num2st[mu][0]
+            temp += self.Cmunu(mu,nu)
+        Omegamu = temp * self.mu(fwdmu).dagger()
+        Qmu = Omegamu.antihermitian_traceless() # Gattringer is -i times this.
+        return Qmu
+
 
 class GaugeMu(Field):
     def __init__(self, geometry: QCD_geometry):

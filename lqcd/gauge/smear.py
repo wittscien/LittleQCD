@@ -44,13 +44,7 @@ class Smear:
         for _ in range(self.niter):
             Uold.field = xp.copy(result.field)
             for mu in [0,1,2,3]:
-                temp = GaugeMu(self.geometry)
-                for nu in [0,1,2,3]:
-                    if mu == nu: continue
-                    fwdmu = self.mu_num2st[mu][0]
-                    temp += self.rho * Uold.Cmunu(mu,nu)
-                Omegamu = temp * Uold.mu(fwdmu).dagger()
-                Qmu = Omegamu.antihermitian_traceless() # Gattringer is -i times this.
+                Qmu = self.rho * Uold.Qmu(mu)
                 # U' = exp(Q)U
                 result.set_mu(mu, Qmu.to_exp() * Uold)
         return result
