@@ -14,7 +14,7 @@ class Smear:
             self.alpha = params["alpha"]
             self.niter = params["niter"]
         elif params['tech'] == 'Stout':
-            self.alpha = params["rho"]
+            self.rho = params["rho"]
             self.niter = params["niter"]
         self.mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
         self.mu_neg = {'t': '-t', '-t': 't', 'x': '-x', '-x': 'x', 'y': '-y', '-y': 'y', 'z': '-z', '-z': 'z'}
@@ -37,6 +37,8 @@ class Smear:
         return result
 
     def Stout(self):
+        # The Qmu with rho = 1 is the Z (a Gauge object, has all mu) in the gradient flow.
+        # rho can be factored out.
         xp = get_backend()
         result = Gauge(self.geometry)
         Uold = Gauge(self.geometry)
@@ -46,7 +48,8 @@ class Smear:
             for mu in [0,1,2,3]:
                 Qmu = self.rho * Uold.Qmu(mu)
                 # U' = exp(Q)U
-                result.set_mu(mu, Qmu.to_exp() * Uold)
+                fwdmu = self.mu_num2st[mu][0]
+                result.set_mu(mu, Qmu.to_exp() * Uold.mu(fwdmu))
         return result
 
 
@@ -67,4 +70,4 @@ if __name__ == "__main__":
 
     # Stout
     Smr = Smear(U, {"tech": "Stout", "rho": 0.1, "niter": 2})
-    U2 = Smr.APE_space()
+    U2 = Smr.Stout()

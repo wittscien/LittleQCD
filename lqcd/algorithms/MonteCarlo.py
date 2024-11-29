@@ -90,6 +90,7 @@ class MonteCarlo:
         plt.xlim([0, self.n_steps])
         plt.xlabel("Step")
         plt.ylabel("Plaquette action")
+        plt.savefig('plaquette_plot.pdf',transparent=True)
 
 
 if __name__ == "__main__":

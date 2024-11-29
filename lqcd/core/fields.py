@@ -72,6 +72,26 @@ class Gauge(Field):
         else:
             raise ValueError("Invalid number of indices")
 
+    def __mul__(self, other):
+        if isinstance(other, numbers.Number):
+            result = Gauge(self.geometry)
+            result.field = self.field * other
+            return result
+        elif isinstance(other, Gauge):
+            # Used in the gradient flow, e.g. for (1/4 * Z0).to_exp() * W0
+            # Equivalent to for each mu, multiply the SU(3) matrix.
+            result = Gauge(self.geometry)
+            result.field = contract("txyzmab, txyzmbc -> txyzmac", self.field, other.field)
+            return result
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, numbers.Number):
+            return self.__mul__(other)
+        else:
+            return NotImplemented
+
     def read(self, filename):
         with h5py.File(filename, 'r') as f:
             self.field = f['field'][()]
@@ -218,14 +238,47 @@ class Gauge(Field):
 
     def Qmu(self, mu):
         # For smearing. rho is factored out.
+        # Q_mu = (Sum_nu Cmunu) U_mu^dagger
+        # Reverse order of the plaquette, in terms of Umunu.
         temp = GaugeMu(self.geometry)
-        for nu in self.Nl:
+        for nu in range(self.Nl):
             if mu == nu: continue
             fwdmu = self.mu_num2st[mu][0]
             temp += self.Cmunu(mu,nu)
         Omegamu = temp * self.mu(fwdmu).dagger()
         Qmu = Omegamu.antihermitian_traceless() # Gattringer is -i times this.
         return Qmu
+
+    def density(self):
+        # The density of the gauge field, Eq. 2.1 of [Luscher] JHEP 2010.
+        # It is written as 1/4 * G_munu^a G_munu^a, I do sum over all sites and trace over color.
+        result = 0
+        for mu in range(self.geometry.Nl):
+            for nu in range(self.geometry.Nl):
+                fwdmu = self.mu_num2st[mu][0]
+                fwdnu = self.mu_num2st[nu][0]
+                Gmunu = self.field_strength(fwdmu, fwdnu)
+                result += contract("txyzab, txyzba", Gmunu.field, Gmunu.field)
+        return result / 4
+
+    def Zgf(self):
+        # The Z in the gradient flow.
+        # Simply collect each mu of Qmu.
+        result = Gauge(self.geometry)
+        for mu in [0,1,2,3]:
+            result.set_mu(mu, self.Qmu(mu))
+        return result
+
+    def to_exp(self):
+        # Used in the gradient flow.
+        result = Gauge(self.geometry)
+        for t in range(self.geometry.T):
+            for x in range(self.geometry.X):
+                for y in range(self.geometry.Y):
+                    for z in range(self.geometry.Z):
+                        for mu in range(self.geometry.Nl):
+                            result.field[t,x,y,z,mu] = sp.linalg.expm(self.field[t,x,y,z,mu])
+        return result
 
 
 class GaugeMu(Field):
@@ -248,6 +301,7 @@ class GaugeMu(Field):
             raise ValueError("Invalid number of indices")
 
     def __sub__(self, other):
+        xp = get_backend()
         if isinstance(other, GaugeMu):
             result = GaugeMu(self.geometry)
             result.field = self.field - other.field
@@ -299,6 +353,7 @@ class GaugeMu(Field):
         return result
 
     def to_exp(self):
+        # Used in the Stout smearing.
         result = GaugeMu(self.geometry)
         for t in range(self.geometry.T):
             for x in range(self.geometry.X):
