@@ -2,7 +2,8 @@ from lqcd.io.backend import set_backend, get_backend
 from lqcd.core.geometry import QCD_geometry
 from lqcd.core.fields import Gauge, Fermion, Gamma, Propagator
 from lqcd.fermion.Wilson import DiracOperator
-from lqcd.fermion.smear import Smear
+from lqcd.gauge.smear import Smear as gSmear
+from lqcd.fermion.smear import Smear as qSmear
 from lqcd.algorithms.inverter import propagator
 import lqcd.measurements.contract_funcs as cf
 import lqcd.measurements.analysis_funcs as af
@@ -30,6 +31,10 @@ for i in tqdm.tqdm(range(len(confs))):
     U = Gauge(geometry)
     U.read("../algorithms/confs/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % confs[i])
 
+    # Gauge smear
+    Smr = gSmear(U, {"tech": "APE", "alpha": 0.1, "niter": 10})
+    U = Smr.APE_smear_space()
+
     # Boundary condition
     U = U.apply_boundary_condition_periodic_quark()
 
@@ -40,13 +45,13 @@ for i in tqdm.tqdm(range(len(confs))):
     inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False}
 
     # Source
-    smr_params = {"tech": "Jacobi", "kappa": 0.1, "niter": 10}
+    quark_smr_params = {"tech": "Jacobi", "kappa": 0.1, "niter": 10}
     srcfull = Propagator(geometry)
     for s in range(4):
         for c in range(3):
             src = Fermion(geometry)
             src.point_source([0, 0, 0, 0, s, c])
-            Smr = Smear(U, src, smr_params)
+            Smr = qSmear(U, src, quark_smr_params)
             src = Smr.Jacobi_smear()
             srcfull.field[:,:,:,:,:,s,:,c] = src.field
 
