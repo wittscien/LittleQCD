@@ -101,6 +101,16 @@ class Gauge(Field):
                         for mu in range(self.Nl):
                             self.field[t, x, y, z, mu] = ut.proj_su3(self.field[t, x, y, z, mu])
 
+    def apply_bc_periodic_quark(self):
+        xp = get_backend()
+        result = Gauge(self.geometry)
+        result.field = xp.copy(self.field)
+        phase_factor = xp.exp(1j * xp.pi / self.T)
+        # mu=0
+        for t in range(self.T):
+            result.field[t,:,:,:,0,:,:] *= phase_factor
+        return result
+
     def shift(self, m):
         xp = get_backend()
         mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
