@@ -22,12 +22,16 @@ xp = get_backend()
 geo_vec = [8, 4, 4, 4]
 geometry = QCD_geometry(geo_vec)
 confs = xp.arange(100, 1000, 20, dtype=int)
+confs = xp.arange(100, 200, 20, dtype=int)
 corr = {}
 corr['pion'] = xp.zeros((len(confs), geo_vec[0]), dtype=complex)
 corr['proton'] = xp.zeros((len(confs), geo_vec[0]), dtype=complex)
 for i in tqdm.tqdm(range(len(confs))):
     U = Gauge(geometry)
     U.read("../algorithms/confs/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % confs[i])
+
+    # Boundary condition
+    U = U.apply_boundary_condition_periodic_quark()
 
     # Dirac operator
     Q = DiracOperator(U, {'fermion_type':'twisted_mass_clover', 'm': 3, 'mu': 0.1, 'csw': 0.1})
@@ -62,9 +66,13 @@ for i in tqdm.tqdm(range(len(confs))):
     t1 = cf.T1(Su, GSdG, Su)
     t2 = cf.T2(Su, GSdG, Su)
     proton = cf.mom_proj(t1+t2, [0,0,0])
-    gammat = np.array(([0, 0, -1, 0], [0, 0, 0, -1], [-1, 0, 0, 0], [0, -1, 0, 0]))
+    gammat = Gamma(0).mat
+    # Parity projection
     P = (np.identity(4) + 1 * gammat) / 2
-    corr['proton'][i] = contract('ik,zkj,ji->z', P, proton, P)
+    proton = contract('ik,zkj,ji->z', P, proton, P)
+    T = geo_vec[0]
+    # BC fix
+    corr['proton'][i] = np.exp(1j * 3 * np.pi * np.arange(T) / T) * np.roll(proton, -0)
 
 #%%
 # Plotting

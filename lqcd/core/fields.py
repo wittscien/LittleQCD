@@ -101,7 +101,7 @@ class Gauge(Field):
                         for mu in range(self.Nl):
                             self.field[t, x, y, z, mu] = ut.proj_su3(self.field[t, x, y, z, mu])
 
-    def apply_bc_periodic_quark(self):
+    def apply_boundary_condition_periodic_quark(self):
         xp = get_backend()
         result = Gauge(self.geometry)
         result.field = xp.copy(self.field)
