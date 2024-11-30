@@ -19,6 +19,7 @@ class GFlow:
     def forward(self):
         # In place
         # I did not call Stout smearing because there is procedure like exp(8/9 Z1 - 17/36 Z0) W1, while the Stout smearing is just exp(Q)U.
+        # For small lattices I can save them.
         self.U_list = []
         self.chi_list = []
         for _ in range(self.niter):
@@ -53,15 +54,54 @@ class GFlow:
             self.U.field = xp.copy(W3.field)
             self.chi.field = xp.copy(phi3.field)
 
+    def adjoint(self, xi):
+        # In place
+        # Not using hierarchial scheme here. For small lattices I don't need to flow the gauge field for each flow time but just save them. I hope the memory is enough.
+        # In my way, call forward() first to genrate the list of flowed gauge, and then call adjoint().
+        self.xi = xi
+        self.xi_list = []
+        for i in range(self.niter):
+            U = self.U_list[self.niter - i - 1]
+            # Save to the list.
+            temp_xi = Fermion(self.geometry)
+            temp_xi.field = xp.copy(self.xi.field)
+            self.xi_list.append(temp_xi)
+            # Flow the Gauge field, because I didn't save Z's.
+            W0 = Gauge(self.geometry)
+            W0.field = xp.copy(U.field)
+            Z0 = W0.Zgf() * self.dt
+            W1 = (1/4 * Z0).to_exp() * W0
+            Z1 = W1.Zgf() * self.dt
+            W2 = (8/9 * Z1 - 17/36 * Z0).to_exp() * W1
+            # Step 0: lambda3 = xi
+            lambda3 = Fermion(self.geometry)
+            lambda3.field = xp.copy(self.xi.field)
+            # Step 1: lambda2 = 3/4 Delta2 lambda3
+            Delta2lambda3 = W2.laplacian(lambda3) * self.dt
+            lambda2 = 3/4 * Delta2lambda3
+            # Step 2: lambda1 = lambda3 + 8/9 Delta1 lambda2
+            Delta1lambda2 = W1.laplacian(lambda2) * self.dt
+            lambda1 = lambda3 + 8/9 * Delta1lambda2
+            # Step 3: lambda0 = lambda1 + lambda2 + 1/4 Delta0 (lambda1 - 8/9 lambda2)
+            Delta0lambda1 = W0.laplacian(lambda1) * self.dt
+            Delta0lambda2 = W0.laplacian(lambda2) * self.dt
+            lambda0 = lambda1 + lambda2 + 1/4 * Delta0lambda1 - 2/9 * Delta0lambda2
+            # Set xi = lambda0
+            self.xi.field = xp.copy(lambda0.field)
+
     def plot(self):
         n_list = xp.arange(self.niter)
         action_list = xp.zeros(self.niter)
         density_list = xp.zeros(self.niter)
         # smear_list = xp.zeros((self.niter,self.geometry.X))
+        # smearadj_list = xp.zeros((self.niter,self.geometry.X))
         for iter in range(self.niter):
             action_list[iter] = self.U_list[iter].plaquette_action()
             density_list[iter] = self.U_list[iter].density().real
             # smear_list[iter] = self.chi_list[iter].field[0,:,0,0,0,0].real
+            # smearadj_list[iter] = self.xi_list[iter].field[0,:,0,0,0,0].real
+            # Test the inner product, this passed.
+            # print(self.chi_list[iter].dot(self.xi_list[self.niter - iter - 1]))
         fig, ax = plt.subplots(1,2,figsize=(2*5,4))
         ax[0].plot(n_list, action_list, ls='None', color='k', marker='o', markersize=3)
         ax[0].set_xlim([0,self.niter])
@@ -90,4 +130,5 @@ if __name__ == "__main__":
 
     gflow = GFlow(U, chi, {"dt": 0.01, "niter": 10})
     gflow.forward()
+    gflow.adjoint(gflow.chi)
     gflow.plot()

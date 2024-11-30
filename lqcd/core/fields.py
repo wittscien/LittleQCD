@@ -443,6 +443,7 @@ class Fermion(Field):
             return self.__mul__(other)
 
     def dot(self, other):
+        # psi1^dagger * psi2
         xp = get_backend()
         if isinstance(other, Fermion):
             return contract("txyzsc, txyzsc", xp.conjugate(self.field), other.field)
