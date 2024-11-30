@@ -262,7 +262,7 @@ class Gauge(Field):
         return result / 2
 
     def Zgf(self):
-        # The Z in the gradient flow.
+        # The Z in the gradient flow. Negative derivative of the plaquette action.
         # Simply collect each mu of Qmu.
         result = Gauge(self.geometry)
         for mu in [0,1,2,3]:
@@ -279,6 +279,21 @@ class Gauge(Field):
                         for mu in range(self.geometry.Nl):
                             result.field[t,x,y,z,mu] = sp.linalg.expm(self.field[t,x,y,z,mu])
         return result
+
+    def laplacian(self, src):
+        # Used in the gradient flow of the quark field.
+        xp = get_backend()
+        dst = Fermion(self.geometry)
+        dst += -8 * src
+        for mu in range(self.geometry.Nl):
+            src_fwd = Fermion(self.geometry)
+            src_bwd = Fermion(self.geometry)
+            src_fwd.field = xp.roll(src.field, -1, axis=mu)
+            src_bwd.field = xp.roll(src.field, +1, axis=mu)
+            fwdmu = self.mu_num2st[mu][0]
+            bwdmu = self.mu_num2st[mu][1]
+            dst += (self.mu(fwdmu) * src_fwd + self.mu(bwdmu) * src_bwd)
+        return dst
 
 
 class GaugeMu(Field):

@@ -20,35 +20,49 @@ class GFlow:
         # In place
         # I did not call Stout smearing because there is procedure like exp(8/9 Z1 - 17/36 Z0) W1, while the Stout smearing is just exp(Q)U.
         self.U_list = []
-        for iter in range(self.niter):
+        self.chi_list = []
+        for _ in range(self.niter):
+            # Save to the list.
             temp_U = Gauge(self.geometry)
             temp_U.field = xp.copy(self.U.field)
+            temp_chi = Fermion(self.geometry)
+            temp_chi.field = xp.copy(self.chi.field)
             self.U_list.append(temp_U)
-            # Step 0: W0 = U; phi3 = chi
+            self.chi_list.append(temp_chi)
+            # Step 0: W0 = U; phi0 = chi
             W0 = Gauge(self.geometry)
             W0.field = xp.copy(self.U.field)
-            phi3 = Fermion(self.geometry)
-            phi3.field = xp.copy(self.chi.field)
-            # Step 1: W1 = exp(1/4 Z0) W0
+            phi0 = Fermion(self.geometry)
+            phi0.field = xp.copy(self.chi.field)
+            # Step 1: W1 = exp(1/4 Z0) W0; phi1 = phi0 + 1/4 Delta0 phi0
             Z0 = W0.Zgf() * self.dt
             W1 = (1/4 * Z0).to_exp() * W0
-            # Step 2: W2 = exp(8/9 Z1 - 17/36 Z0) W1
+            Delta0phi0 = W0.laplacian(phi0) * self.dt
+            phi1 = phi0 + 1/4 * Delta0phi0
+            # Step 2: W2 = exp(8/9 Z1 - 17/36 Z0) W1; phi2 = phi0 + 8/9 Delta1 phi1 - 2/9 Delta0 phi0
             Z1 = W1.Zgf() * self.dt
             W2 = (8/9 * Z1 - 17/36 * Z0).to_exp() * W1
-            # Step 3: W3 = exp(3/4 Z2 - 8/9 Z1 + 17/36 Z0) W2
+            Delta1phi1 = W1.laplacian(phi1) * self.dt
+            phi2 = phi0 + 8/9 * Delta1phi1 - 2/9 * Delta0phi0
+            # Step 3: W3 = exp(3/4 Z2 - 8/9 Z1 + 17/36 Z0) W2; phi3 = phi1 + 3/4 Delta2 phi2
             Z2 = W2.Zgf() * self.dt
             W3 = (3/4 * Z2 - 8/9 * Z1 + 17/36 * Z0).to_exp() * W2
-            # Set U = W3
+            Delta2phi2 = W2.laplacian(phi2) * self.dt
+            phi3 = phi1 + 3/4 * Delta2phi2
+            # Set U = W3; chi = phi3
             self.U.field = xp.copy(W3.field)
+            self.chi.field = xp.copy(phi3.field)
 
-    def plot_action(self):
+    def plot(self):
         n_list = xp.arange(self.niter)
         action_list = xp.zeros(self.niter)
         density_list = xp.zeros(self.niter)
+        # smear_list = xp.zeros((self.niter,self.geometry.X))
         for iter in range(self.niter):
             action_list[iter] = self.U_list[iter].plaquette_action()
             density_list[iter] = self.U_list[iter].density().real
-        fig, ax = plt.subplots(1,2)
+            # smear_list[iter] = self.chi_list[iter].field[0,:,0,0,0,0].real
+        fig, ax = plt.subplots(1,2,figsize=(2*5,4))
         ax[0].plot(n_list, action_list, ls='None', color='k', marker='o', markersize=3)
         ax[0].set_xlim([0,self.niter])
         ax[0].set_xlabel(r'$n_{\mathrm{iter}}}$')
@@ -72,7 +86,8 @@ if __name__ == "__main__":
     U = Gauge(geometry)
     U.read("../algorithms/confs/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % 100)
     chi = Fermion(geometry)
+    chi.point_source([0, 0, 0, 0, 0, 0])
 
     gflow = GFlow(U, chi, {"dt": 0.01, "niter": 10})
     gflow.forward()
-    gflow.plot_action()
+    gflow.plot()
