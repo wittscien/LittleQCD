@@ -26,7 +26,7 @@ class MonteCarlo:
         Path("confs/beta_%.2f_L%dx%d"%(self.beta, self.geometry.X, self.geometry.T)).mkdir(parents=True, exist_ok=True)
 
     def Markov(self):
-        # Can be interuppted anytime.
+        # Can be interuppted anytime. The detailed balance is satisfied within each update.
         U0 = Gauge(self.geometry)
         if self.resume:
             U0.read("confs/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, self.start))
