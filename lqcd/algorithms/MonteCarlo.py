@@ -1,3 +1,5 @@
+import tqdm
+import pickle
 import matplotlib.pyplot as plt
 from pathlib import Path
 from lqcd.io import get_backend
@@ -15,29 +17,41 @@ class MonteCarlo:
         self.n_therm = params["n_therm"]
         self.n_take = params["n_take"]
         self.eps = params["eps"]
+        self.resume = params["resume"]
+        if self.resume:
+            self.start = params["start"]
+        else:
+            self.start = 0
         self.mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
         Path("confs/beta_%.2f_L%dx%d"%(self.beta, self.geometry.X, self.geometry.T)).mkdir(parents=True, exist_ok=True)
 
     def Markov(self):
+        # Can be interuppted anytime.
         U0 = Gauge(self.geometry)
-        U0.init_trivial()
-        U0.init_random()
+        if self.resume:
+            U0.read("confs/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, self.start))
+        else:
+            U0.init_random()
         self.acceptance_rate = 0
         self.confs = []
         self.confs.append(U0)
-        for step in range(self.n_steps):
+        for step in tqdm.tqdm(range(self.n_steps)):
+            # +1 because when saving it is already moved once in the chain.
+            global_step = self.start + step + 1
             Unew = self.metropolis(self.confs[step])
             self.confs.append(Unew)
             # if step % 10 == 0:
             #     print(f"Step {step}/{self.n_steps}: Action = {self.beta / self.geometry.Nc * Unew.plaquette_action()}")
-            if step >= self.n_therm and (step - self.n_therm) % self.n_take == 0:
-                Unew.write("confs/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, step))
+            if global_step >= self.n_therm and (global_step - self.n_therm) % self.n_take == 0:
+                Unew.write("confs/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, global_step))
         self.acceptance_rate /= self.n_steps * self.geometry.T * self.geometry.X * self.geometry.Y * self.geometry.Z * self.geometry.Nl * self.n_hit
         print(f"Acceptance rate = {self.acceptance_rate}")
+        # I deleted the saving the state of the random generator. The random numbers could be correlated, but it's a game anyway. So I deleted the seed also.
 
     def gen_X_list(self):
         X_list = []
-        xp.random.seed(0)
+        # Not the right place to place seed anyway.
+        # xp.random.seed(0)
         for _ in range(self.n_hit * self.geometry.T * self.geometry.X * self.geometry.Y * self.geometry.Z * self.geometry.Nl // 2):
             r = mf.SU2_eps(self.eps, xp.random.uniform(-0.5, 0.5, 4))
             s = mf.SU2_eps(self.eps, xp.random.uniform(-0.5, 0.5, 4))
@@ -98,8 +112,8 @@ if __name__ == "__main__":
     xp = get_backend()
 
     geo_vec = [8, 4, 4, 4]
-    geometry = QCD_geometry(geo_vec)
-    mc_params = {"geometry": geo_vec, "beta": 6.0, "n_steps": 1000, "n_hit": 3, "n_therm": 100, "n_take": 20, "eps": 0.05}
+    mc_params = {"geometry": geo_vec, "beta": 6.0, "n_steps": 1000, "n_hit": 3, "n_therm": 400, "n_take": 20, "eps": 0.05, "resume": False}
+    mc_params = {"geometry": geo_vec, "beta": 6.0, "n_steps": 1000, "n_hit": 3, "n_therm": 400, "n_take": 20, "eps": 0.05, "resume": True, "start": 1000}
     MC = MonteCarlo(mc_params)
     MC.Markov()
     MC.plaquette_plot()

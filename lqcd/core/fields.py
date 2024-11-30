@@ -430,6 +430,21 @@ class Fermion(Field):
         self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
         self.field[point[0],point[1],point[2],point[3],point[4],point[5]] = 1
 
+    def wall_source(self, t):
+        xp = get_backend()
+        self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
+        self.field[t] = 1
+
+    def Z2_stochastic_source(self, t):
+        xp = get_backend()
+        self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
+        self.field[t] = xp.random.choice([1, -1], size=(self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc))
+
+    def Z2_stochastic_spin_color_diluted_source(self, t, s, c):
+        xp = get_backend()
+        self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
+        self.field[t,:,:,:,s,c] = xp.random.choice([1, -1], size=(self.geometry.X, self.geometry.Y, self.geometry.Z))
+
     def __mul__(self, other):
         if isinstance(other, numbers.Number):
             result = Fermion(self.geometry)
