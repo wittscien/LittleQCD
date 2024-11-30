@@ -1,7 +1,7 @@
 from opt_einsum import contract
 from lqcd.io.backend import get_backend
-from lqcd.core.fields import Gauge, GaugeMu, Fermion, Gamma, Propagator, sigma_munu
-import lqcd.utils.utils as ut
+from lqcd.core import *
+import lqcd.utils as ut
 
 
 

@@ -1,7 +1,7 @@
 from opt_einsum import contract
 from lqcd.io.backend import get_backend
-from lqcd.core.fields import Gauge, GaugeMu, Fermion
-import lqcd.utils.utils as ut
+from lqcd.core import *
+import lqcd.utils as ut
 
 
 
@@ -39,7 +39,6 @@ class Smear:
 
 if __name__ == "__main__":
     from lqcd.io.backend import set_backend
-    from lqcd.core.geometry import QCD_geometry
     set_backend("numpy")
     xp = get_backend()
 
@@ -54,5 +53,5 @@ if __name__ == "__main__":
     src2 = Smr.Jacobi_smear()
 
     import matplotlib.pyplot as plt
-    plt.plot(src.field[0,:,0,0,0,0])
-    plt.plot(src2.field[0,:,0,0,0,0])
+    plt.plot(src.field[0,:,0,0,0,0].real)
+    plt.plot(src2.field[0,:,0,0,0,0].real)

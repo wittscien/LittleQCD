@@ -1,9 +1,8 @@
 import matplotlib.pyplot as plt
 from pathlib import Path
-from lqcd.io.backend import get_backend
-from lqcd.core.geometry import QCD_geometry
-from lqcd.core.fields import Gauge
-import lqcd.algorithms.mc_funcs as mf
+from lqcd.io import get_backend
+from lqcd.core import *
+from lqcd.algorithms import mc_funcs as mf
 
 
 
@@ -94,7 +93,7 @@ class MonteCarlo:
 
 
 if __name__ == "__main__":
-    from lqcd.io.backend import set_backend
+    from lqcd.io import set_backend
     set_backend("numpy")
     xp = get_backend()
 

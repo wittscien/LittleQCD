@@ -1,8 +1,8 @@
 import scipy as sp
 from opt_einsum import contract
-from lqcd.io.backend import get_backend
-from lqcd.core.fields import Gauge, GaugeMu, Fermion
-import lqcd.utils.utils as ut
+from lqcd.io import get_backend
+from lqcd.core import *
+import lqcd.utils as ut
 
 
 
@@ -116,8 +116,7 @@ class GFlow:
         plt.savefig('GFlow_test.pdf',transparent=True)
 
 if __name__ == "__main__":
-    from lqcd.io.backend import set_backend
-    from lqcd.core.geometry import QCD_geometry
+    from lqcd.io import set_backend
     import matplotlib.pyplot as plt
     set_backend("numpy")
     xp = get_backend()

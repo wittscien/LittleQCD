@@ -3,9 +3,9 @@ import h5py
 import scipy as sp
 from opt_einsum import contract
 from sympy import N
-from lqcd.io.backend import get_backend
+from lqcd.io import get_backend
 from lqcd.core.geometry import QCD_geometry
-import lqcd.utils.utils as ut
+import lqcd.utils as ut
 
 
 

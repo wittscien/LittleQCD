@@ -1,8 +1,8 @@
 from opt_einsum import contract
-from lqcd.io.backend import get_backend
-from lqcd.core.fields import Gauge, GaugeMu, Fermion, Gamma, Propagator
-from lqcd.fermion.Wilson import DiracOperator, tm_rotation
-import lqcd.utils.utils as ut
+from lqcd.io import get_backend
+from lqcd.core import *
+from lqcd.fermion import DiracOperator, tm_rotation
+import lqcd.utils as ut
 
 
 
@@ -88,8 +88,7 @@ def propagator(Q, inv_params, srcfull, flavor):
 
 
 if __name__ == "__main__":
-    from lqcd.io.backend import set_backend
-    from lqcd.core.geometry import QCD_geometry
+    from lqcd.io import set_backend
     set_backend("numpy")
     xp = get_backend()
 

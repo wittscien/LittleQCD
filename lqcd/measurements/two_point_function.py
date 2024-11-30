@@ -1,10 +1,8 @@
-from lqcd.io.backend import set_backend, get_backend
-from lqcd.core.geometry import QCD_geometry
-from lqcd.core.fields import Gauge, Fermion, Gamma, Propagator
-from lqcd.fermion.Wilson import DiracOperator
-from lqcd.gauge.smear import Smear as gSmear
-from lqcd.fermion.smear import Smear as qSmear
-from lqcd.algorithms.inverter import propagator
+from lqcd.io import set_backend, get_backend
+from lqcd.core import *
+from lqcd.gauge import Smear as gSmear
+from lqcd.fermion import DiracOperator, Smear as qSmear
+from lqcd.algorithms import propagator
 import lqcd.measurements.contract_funcs as cf
 import lqcd.measurements.analysis_funcs as af
 from opt_einsum import contract
