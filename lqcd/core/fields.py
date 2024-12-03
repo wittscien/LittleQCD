@@ -189,6 +189,7 @@ class Gauge(Field):
         return result
 
     def plaquette_measure(self):
+        # Re Tr ∑ P_{μν}(x) / (18 V4)
         S = 0
         for mu in range(self.Nl - 1):
             for nu in range(mu + 1, self.Nl):
@@ -198,7 +199,7 @@ class Gauge(Field):
                         for y in range(self.Y):
                             for z in range(self.Z):
                                 S += (plaq[t,x,y,z]).trace().real
-        return S
+        return S / (self.Nl * (self.Nl - 1) * self.Nc * self.T * self.X * self.Y * self.Z) # / (18 V4)
 
     def plaquette_action(self):
         # No beta / N factor.

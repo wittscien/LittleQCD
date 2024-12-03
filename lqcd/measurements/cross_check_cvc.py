@@ -56,7 +56,7 @@ check("Original gauge check", U.field[3,0,3,2,1,1,0].real, 0.3767504654460144)
 Smr = gSmear(U, {"tech": "APE", "alpha": 0.1, "niter": 10})
 U_smeared = Smr.APE_space()
 check("APE smearing check", U_smeared.field[3,0,3,2,1,1,0].real, -0.06151140865874503)
-check("Plaquette check", U_smeared.plaquette_measure() / (18 * geometry.T * geometry.X * geometry.Y * geometry.Z), 0.5328135787934447)
+check("Plaquette check", U_smeared.plaquette_measure(), 0.5328135787934447)
 if 0:
     Smr = gSmear(U, {"tech": "Stout", "rho": 0.1, "niter": 10})
     U_smeared_Stout = Smr.Stout()
@@ -65,7 +65,7 @@ if 0:
 # Boundary condition
 U_with_phase = U.apply_boundary_condition_periodic_quark()
 check("BC check", U_with_phase.field[3,0,3,2,1,1,0].real, 0.3767504654460144)
-check("Plaquette check", U_with_phase.plaquette_measure() / (18 * geometry.T * geometry.X * geometry.Y * geometry.Z), 0.11845355681410792)
+check("Plaquette check", U_with_phase.plaquette_measure(), 0.11845355681410792)
 exit()
 # Dirac operator
 Q = DiracOperator(U, {'fermion_type':'twisted_mass_clover', 'kappa': 0.177, 'mu': 0.003, 'csw': 1.74})
