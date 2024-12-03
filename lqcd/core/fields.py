@@ -128,8 +128,7 @@ class Gauge(Field):
         result.field = xp.copy(self.field)
         phase_factor = xp.exp(1j * xp.pi / self.T)
         # mu=0
-        for t in range(self.T):
-            result.field[t,:,:,:,0,:,:] *= phase_factor
+        result.field[:,:,:,:,0,:,:] *= phase_factor
         return result
 
     def shift(self, m):
