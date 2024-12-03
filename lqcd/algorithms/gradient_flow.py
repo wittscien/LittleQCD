@@ -123,7 +123,7 @@ if __name__ == "__main__":
 
     geometry = QCD_geometry([8, 4, 4, 4])
     U = Gauge(geometry)
-    U.read("../algorithms/confs/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % 100)
+    U.read("../algorithms/confs/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % 400)
     chi = Fermion(geometry)
     chi.point_source([0, 0, 0, 0, 0, 0])
 
