@@ -2,7 +2,7 @@ from lqcd.io import set_backend, get_backend
 from lqcd.core import *
 from lqcd.gauge import Smear as gSmear
 from lqcd.fermion import DiracOperator, Smear as qSmear
-from lqcd.algorithms import propagator
+from lqcd.algorithms import Inverter, propagator
 import lqcd.measurements.contract_funcs as cf
 import lqcd.measurements.analysis_funcs as af
 from opt_einsum import contract
@@ -20,8 +20,8 @@ xp = get_backend()
 # Gauge field
 geo_vec = [8, 4, 4, 4]
 geometry = QCD_geometry(geo_vec)
-confs = xp.arange(100, 1000, 20, dtype=int)
-confs = xp.arange(100, 200, 20, dtype=int)
+confs = xp.arange(400, 1000, 20, dtype=int)
+confs = xp.arange(400, 420, 20, dtype=int)
 corr = {}
 corr['pion'] = xp.zeros((len(confs), geo_vec[0]), dtype=complex)
 corr['proton'] = xp.zeros((len(confs), geo_vec[0]), dtype=complex)
@@ -42,7 +42,7 @@ for i in tqdm.tqdm(range(len(confs))):
     # Inverter parameters
     inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False}
 
-    # Source
+    # Source: point-to-all propagator
     quark_smr_params = {"tech": "Jacobi", "kappa": 0.1, "niter": 10}
     srcfull = Propagator(geometry)
     for s in range(4):
@@ -56,6 +56,20 @@ for i in tqdm.tqdm(range(len(confs))):
     # Propagator
     Su = propagator(Q, inv_params, srcfull, 'u')
     Sd = propagator(Q, inv_params, srcfull, 'd')
+
+    # Stochastic propagator -> loop, manually construct the loop.
+    n_loop_samples = 2
+    Loop = Propagator(geometry)
+    for i in range(n_loop_samples):
+        for t in range(geometry.T):
+            for s in range(4):
+                for c in range(3):
+                    src = Fermion(geometry)
+                    src.Z2_stochastic_time_spin_color_diluted_source(t,s,c)
+                    x0 = Fermion(geometry)
+                    Inv = Inverter(Q, inv_params)
+                    phi = Inv.invert(src, x0, 'u')
+                    Loop.field += contract("txyzBb, txyzAa -> txyzBAba", phi.field, xp.conjugate(src.field)) / n_loop_samples
 
     #%%
     # Meson Contraction
