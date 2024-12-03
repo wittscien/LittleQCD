@@ -233,7 +233,7 @@ class Gauge(Field):
         fwdnu = self.mu_num2st[nu][0]
         bwdmu = self.mu_num2st[mu][1]
         bwdnu = self.mu_num2st[nu][1]
-        result = self.mu(fwdnu) * self.shift(fwdnu).mu(fwdmu) * self.shift(fwdnu).shift(fwdmu).mu(bwdnu) + self.mu(bwdnu) * self.shift(bwdnu).mu(fwdmu) * self.shift(bwdnu).shift(fwdmu).mu(bwdnu)
+        result = self.mu(fwdnu) * self.shift(fwdnu).mu(fwdmu) * self.shift(fwdnu).shift(fwdmu).mu(bwdnu) + self.mu(bwdnu) * self.shift(bwdnu).mu(fwdmu) * self.shift(bwdnu).shift(fwdmu).mu(fwdnu)
         return result
 
     def Qmu(self, mu):
