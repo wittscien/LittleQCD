@@ -189,6 +189,18 @@ class Gauge(Field):
         result = self.mu(mu) * self.shift(mu).mu(nu) * self.shift(mu).shift(nu).mu(mu_neg) * self.shift(nu).mu(nu_neg)
         return result
 
+    def plaquette_measure(self):
+        S = 0
+        for mu in range(self.Nl - 1):
+            for nu in range(mu + 1, self.Nl):
+                plaq = self.plaquette(self.mu_num2st[mu][0], self.mu_num2st[nu][0])
+                for t in range(self.T):
+                    for x in range(self.X):
+                        for y in range(self.Y):
+                            for z in range(self.Z):
+                                S += (plaq[t,x,y,z]).trace().real
+        return S
+
     def plaquette_action(self):
         # No beta / N factor.
         xp = get_backend()
