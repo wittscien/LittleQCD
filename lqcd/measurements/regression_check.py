@@ -49,26 +49,45 @@ for t in range(geometry.T):
                             loc_real = ((((((t*geometry.X+x)*geometry.Y+y)*geometry.Z+z)*geometry.Nl+mu)*geometry.Nc+a)*geometry.Nc+b)*2
                             # print("                if (loc_real == %d){*(g+loc_real) = %.16f; *(g+loc_imag) = %.16f;}" % (loc_real, U.field[t,x,y,z,mu,a,b].real, U.field[t,x,y,z,mu,a,b].imag))
 
+src_test = Fermion(geometry)
+src_test.init_random()
+for t in range(geometry.T):
+    for x in range(geometry.X):
+        for y in range(geometry.Y):
+            for z in range(geometry.Z):
+                for A in range(4):
+                    for a in range(3):
+                        loc_real = (((((t*geometry.X+x)*geometry.Y+y)*geometry.Z+z)*geometry.Ns+A)*geometry.Nc+a)*2
+                        # print("              if (loc_real == %d){*(s+loc_real) = %.16f; *(s+loc_imag) = %.16f;}" % (loc_real, src_test.field[t,x,y,z,A,a].real, src_test.field[t,x,y,z,A,a].imag))
+
 #%%
 
-# Gauge smear
+# Test the gauge APE smearing
 check("Original gauge check", U.field[3,0,3,2,1,1,0].real, 0.3767504654460144)
 Smr = gSmear(U, {"tech": "APE", "alpha": 0.1, "niter": 10})
 U_smeared = Smr.APE_space()
 check("APE smearing check", U_smeared.field[3,0,3,2,1,1,0].real, -0.06151140865874503)
 check("Plaquette check", U_smeared.plaquette_measure(), 0.5328135787934447)
-if 0:
-    Smr = gSmear(U, {"tech": "Stout", "rho": 0.1, "niter": 10})
-    U_smeared_Stout = Smr.Stout()
-    check("Stout smearing check", U_smeared_Stout.field[3,0,3,2,1,1,0].real, -0.22355297609106276)
 
-# Boundary condition
+# Test the gauge Stout smearing
+Smr = gSmear(U, {"tech": "Stout", "rho": 0.1, "niter": 10})
+U_smeared_Stout = Smr.Stout()
+check("Stout smearing check", U_smeared_Stout.field[3,0,3,2,1,1,0].real, -0.22355297609106276)
+
+# Test the boundary condition
 U_with_phase = U.apply_boundary_condition_periodic_quark()
 check("BC check", U_with_phase.field[3,0,3,2,1,1,0].real, 0.3767504654460144)
 check("Plaquette check", U_with_phase.plaquette_measure(), 0.11845355681410792)
+
+# Test the Dirac operator
+# This point corresponds to ix = 4952, and 2480 for the field with even site. I find this by violently compare the field values.
+Q = DiracOperator(U_with_phase, {'fermion_type':'twisted_mass_clover', 'kappa': 0.177, 'mu': 0.003, 'csw': 1.74})
+check("Random spinor check", src_test.field[3,0,3,2,1,1].real, 0.06540420131142144)
+# The hopping term: -2.2875939515965786.
+# Without the hopping term: -0.3935504359562627.
+check("Dirac check", Q.Dirac(src_test, 'u')[3,0,3,2,1,1].real, -2.681144387552841)
+
 exit()
-# Dirac operator
-Q = DiracOperator(U, {'fermion_type':'twisted_mass_clover', 'kappa': 0.177, 'mu': 0.003, 'csw': 1.74})
 
 # Inverter parameters
 inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False}

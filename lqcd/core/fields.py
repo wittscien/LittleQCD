@@ -437,6 +437,25 @@ class Fermion(Field):
         else:
             raise ValueError("Invalid number of indices")
 
+    def init_random(self):
+        xp = get_backend()
+        self.field = xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc) + 1j * xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc)
+
+    def shift(self, m):
+        xp = get_backend()
+        mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
+        result = Fermion(self.geometry)
+        # psi(x+mu)
+        if m in ['t', 'x', 'y', 'z']:
+            dir = +1
+            mu = mu_st2num[m]
+        # psi(x-mu)
+        elif m in ['-t', '-x', '-y', '-z']:
+            dir = -1
+            mu = mu_st2num[m[1]]
+        result.field = xp.roll(self.field, -dir, axis=mu)
+        return result
+
     def point_source(self, point):
         xp = get_backend()
         self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)

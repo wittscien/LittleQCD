@@ -27,13 +27,9 @@ class DiracOperator:
         xp = get_backend()
         dst = Fermion(self.geometry)
         for mu in range(self.geometry.Nl):
-            src_fwd = Fermion(self.geometry)
-            src_bwd = Fermion(self.geometry)
-            src_fwd.field = xp.roll(src.field, -1, axis=mu)
-            src_bwd.field = xp.roll(src.field, +1, axis=mu)
             fwdmu = self.mu_num2st[mu][0]
             bwdmu = self.mu_num2st[mu][1]
-            dst += (-1/2) * ((1 - Gamma(mu)) * (self.U.mu(fwdmu) * src_fwd) + (1 + Gamma(mu)) * (self.U.mu(bwdmu) * src_bwd))
+            dst += (-1/2) * ((1 - Gamma(mu)) * (self.U.mu(fwdmu) * src.shift(fwdmu)) + (1 + Gamma(mu)) * (self.U.mu(bwdmu) * src.shift(bwdmu)))
         return dst
 
     def mass(self, src):
