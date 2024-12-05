@@ -1,5 +1,6 @@
 # Check log
 # 2024.12.03: check with cvc on the random 4448 configuration for APE_space, Stout, plaquette_measure, apply_boundary_condition_periodic_quark. This means the underlying functions like U.shift() is working correctly.
+# 2024.12.04: the Dirac operator passed the check.
 
 
 
@@ -81,11 +82,22 @@ check("Plaquette check", U_with_phase.plaquette_measure(), 0.11845355681410792)
 
 # Test the Dirac operator
 # This point corresponds to ix = 4952, and 2480 for the field with even site. I find this by violently compare the field values.
-Q = DiracOperator(U_with_phase, {'fermion_type':'twisted_mass_clover', 'kappa': 0.177, 'mu': 0.003, 'csw': 1.74})
+Q = DiracOperator(U_with_phase, {'fermion_type':'twisted_mass_clover', 'kappa': 0.177, 'mu': 0.1129943503, 'csw': 1.74})
 check("Random spinor check", src_test.field[3,0,3,2,1,1].real, 0.06540420131142144)
-# The hopping term: -2.2875939515965786.
-# Without the hopping term: -0.3935504359562627.
-check("Dirac check", Q.Dirac(src_test, 'u')[3,0,3,2,1,1].real, -2.681144387552841)
+# The hopping term: -2.2875939515965786
+# Without the hopping term: -0.40060389427277915.
+check("Dirac check", Q.Dirac(src_test, 'u')[3,0,3,2,1,1].real, -2.6881978458693574)
+check("Dirac check", Q.Dirac(src_test, 'd')[3,0,3,2,1,1].real, -2.6737061753850258)
+
+# Test the inverter
+# Inverter parameters
+inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False}
+x0 = Fermion(geometry)
+Inv = Inverter(Q, inv_params)
+src_test_inv = Inv.invert(src_test, x0, 'u')
+print(Q.Dirac(src_test_inv, 'u'))
+print(src_test_inv.field[3,0,3,2,1,1].real)
+# check("Inverter check", src_test_inv.field[3,0,3,2,1,1].real, -2.680759633701542)
 
 exit()
 
