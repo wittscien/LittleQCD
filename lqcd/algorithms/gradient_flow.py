@@ -20,17 +20,14 @@ class GFlow:
         # In place
         # I did not call Stout smearing because there is procedure like exp(8/9 Z1 - 17/36 Z0) W1, while the Stout smearing is just exp(Q)U.
         # For small lattices I can save them.
-        xp = get_backend()
         self.U_list = []
         self.chi_list = []
         self.U_list.append(self.U.copy())
         self.chi_list.append(self.chi.copy())
         for _ in range(self.niter):
             # Step 0: W0 = U; phi0 = chi
-            W0 = Gauge(self.geometry)
-            W0.field = xp.copy(self.U.field)
-            phi0 = Fermion(self.geometry)
-            phi0.field = xp.copy(self.chi.field)
+            W0 = self.U.copy()
+            phi0 = self.chi.copy()
             # Step 1: W1 = exp(1/4 Z0) W0; phi1 = phi0 + 1/4 Delta0 phi0
             Z0 = W0.Zgf() * self.dt
             W1 = (1/4 * Z0).to_exp() * W0
@@ -47,8 +44,8 @@ class GFlow:
             Delta2phi2 = W2.laplacian(phi2) * self.dt
             phi3 = phi1 + 3/4 * Delta2phi2
             # Set U = W3; chi = phi3
-            self.U.field = xp.copy(W3.field)
-            self.chi.field = xp.copy(phi3.field)
+            self.U = W3.copy()
+            self.chi = phi3.copy()
             # Save to the list.
             self.U_list.append(self.U.copy())
             self.chi_list.append(self.chi.copy())
@@ -58,22 +55,19 @@ class GFlow:
         # In place
         # Not using hierarchial scheme here. For small lattices I don't need to flow the gauge field for each flow time but just save them. I hope the memory is enough.
         # In my way, call forward() first to genrate the list of flowed gauge, and then call adjoint().
-        xp = get_backend()
         self.xi = xi
         self.xi_list = []
         self.xi_list.append(self.xi.copy())
         for i in range(self.niter):
             U = self.U_list[self.niter - i - 1]
             # Flow the Gauge field, because I didn't save Z's.
-            W0 = Gauge(self.geometry)
-            W0.field = xp.copy(U.field)
+            W0 = U.copy()
             Z0 = W0.Zgf() * self.dt
             W1 = (1/4 * Z0).to_exp() * W0
             Z1 = W1.Zgf() * self.dt
             W2 = (8/9 * Z1 - 17/36 * Z0).to_exp() * W1
             # Step 0: lambda3 = xi
-            lambda3 = Fermion(self.geometry)
-            lambda3.field = xp.copy(self.xi.field)
+            lambda3 = self.xi.copy()
             # Step 1: lambda2 = 3/4 Delta2 lambda3
             Delta2lambda3 = W2.laplacian(lambda3) * self.dt
             lambda2 = 3/4 * Delta2lambda3
@@ -85,7 +79,7 @@ class GFlow:
             Delta0lambda2 = W0.laplacian(lambda2) * self.dt
             lambda0 = lambda1 + lambda2 + 1/4 * Delta0lambda1 - 2/9 * Delta0lambda2
             # Set xi = lambda0
-            self.xi.field = xp.copy(lambda0.field)
+            self.xi = lambda0.copy()
             # Save to the list.
             self.xi_list.append(self.xi.copy())
         return self.xi.copy()

@@ -20,18 +20,14 @@ class Smear:
         xp = get_backend()
         result = Fermion(self.geometry)
         psiold = Fermion(self.geometry)
-        result.field = self.psi.field
+        result = self.psi.copy()
         for _ in range(self.niter):
-            psiold.field = result.field
-            result.field = psiold.field
+            psiold = result.copy()
+            result = psiold.copy()
             for mu in [1,2,3]:
-                src_fwd = Fermion(self.geometry)
-                src_bwd = Fermion(self.geometry)
-                src_fwd.field = xp.roll(psiold.field, -1, axis=mu)
-                src_bwd.field = xp.roll(psiold.field, +1, axis=mu)
                 fwdmu = self.mu_num2st[mu][0]
                 bwdmu = self.mu_num2st[mu][1]
-                result += self.kappa * (self.U.mu(fwdmu) * src_fwd + self.U.mu(bwdmu) * src_bwd)
+                result += self.kappa * (self.U.mu(fwdmu) * psiold.shift(fwdmu) + self.U.mu(bwdmu) * psiold.shift(bwdmu))
             result.field *= 1 / (1 + 6 * self.kappa)
         return result
 

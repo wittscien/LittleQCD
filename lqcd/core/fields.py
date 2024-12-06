@@ -130,11 +130,9 @@ class Gauge(Field):
 
     def apply_boundary_condition_periodic_quark(self):
         xp = get_backend()
-        result = Gauge(self.geometry)
-        result.field = xp.copy(self.field)
+        result = self.copy()
         phase_factor = xp.exp(1j * xp.pi / self.T)
-        # mu=0
-        result.field[:,:,:,:,0,:,:] *= phase_factor
+        result.field[:,:,:,:,0,:,:] *= phase_factor # mu=0
         return result
 
     def shift(self, m):
@@ -304,13 +302,9 @@ class Gauge(Field):
         dst = Fermion(self.geometry)
         dst += -8 * src
         for mu in range(self.geometry.Nl):
-            src_fwd = Fermion(self.geometry)
-            src_bwd = Fermion(self.geometry)
-            src_fwd.field = xp.roll(src.field, -1, axis=mu)
-            src_bwd.field = xp.roll(src.field, +1, axis=mu)
             fwdmu = self.mu_num2st[mu][0]
             bwdmu = self.mu_num2st[mu][1]
-            dst += (self.mu(fwdmu) * src_fwd + self.mu(bwdmu) * src_bwd)
+            dst += (self.mu(fwdmu) * src.shift(fwdmu) + self.mu(bwdmu) * src.shift(bwdmu))
         return dst
 
 

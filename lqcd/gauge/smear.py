@@ -20,12 +20,11 @@ class Smear:
         self.mu_neg = {'t': '-t', '-t': 't', 'x': '-x', '-x': 'x', 'y': '-y', '-y': 'y', 'z': '-z', '-z': 'z'}
 
     def APE_space(self):
-        xp = get_backend()
         result = Gauge(self.geometry)
         Uold = Gauge(self.geometry)
-        result.field = xp.copy(self.U.field)
+        result = self.U.copy()
         for _ in range(self.niter):
-            Uold.field = xp.copy(result.field)
+            Uold = result.copy()
             for mu in [1,2,3]:
                 temp = GaugeMu(self.geometry)
                 for nu in [1,2,3]:
@@ -39,11 +38,10 @@ class Smear:
     def Stout(self):
         # The Qmu with rho = 1 is the Z (a Gauge object, has all mu) in the gradient flow.
         # rho can be factored out.
-        xp = get_backend()
         Uold = Gauge(self.geometry)
         result = self.U.copy()
         for _ in range(self.niter):
-            Uold.field = xp.copy(result.field)
+            Uold = result.copy()
             for mu in [0,1,2,3]:
                 Qmu = self.rho * Uold.Qmu(mu)
                 # U' = exp(Q)U

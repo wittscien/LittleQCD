@@ -67,8 +67,7 @@ class MonteCarlo:
     def metropolis(self, U):
         # X_list here has the length to go through the lattice exactly once.
         X_list = self.gen_X_list()
-        Unew = Gauge(self.geometry)
-        Unew.field = xp.copy(U.field)
+        Unew = U.copy()
         xiter = 0
         for t in range(self.geometry.T):
             for x in range(self.geometry.X):
