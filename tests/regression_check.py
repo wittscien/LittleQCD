@@ -113,21 +113,21 @@ check("Inverter", src_test_inv.field[3,0,3,2,1,1].real, -0.07115880763279339)
 # Test the adjoint gradient flow
 src = Fermion(geometry)
 src.point_source([3,0,3,2,1,1])
-gflow = GFlow(U_with_phase, src_test, {"dt": 0.01, "niter": 20})
+gflow = GFlow(U_with_phase, Fermion(geometry), {"dt": 0.01, "niter": 20})
 gflow.forward()
-gflow.adjoint(src)
-check("Adjoint gradient flow", gflow.xi.field[3,0,3,2,1,1].real, 0.23570679544838258)
+src_adj_flowed = gflow.adjoint(src)
+check("Adjoint gradient flow", src_adj_flowed.field[3,0,3,2,1,1].real, 0.23570679544838258)
 
 # Test the inverter on a adj flowed source, with the tm rotation also checked
 inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": True, "verbose": False, "tm_rotation": True}
 Inv = Inverter(Q, inv_params)
-prop_gflow = Inv.invert(gflow.xi, x0, 'u')
-check("Inverter with tm rotation", prop_gflow.field[3,0,3,2,1,1].real, 0.021521391753250213)
+prop_gflow_src_adj = Inv.invert(gflow.xi, x0, 'u')
+check("Inverter with tm rotation", prop_gflow_src_adj.field[3,0,3,2,1,1].real, 0.021521391753250213)
 
 # Test the forward gradient flow, which must agree since the adjoint gradient flow which uses the forward flow passed the check.
-gflow = GFlow(U_with_phase, prop_gflow, {"dt": 0.01, "niter": 20})
-gflow.forward()
-check("Forward adjoint flow", gflow.chi.field[3,0,3,2,1,1].real, 0.010707123866497949)
+gflow = GFlow(U_with_phase, prop_gflow_src_adj, {"dt": 0.01, "niter": 20})
+_, prop_gflow_adj_fwd = gflow.forward()
+check("Forward adjoint flow", prop_gflow_adj_fwd.field[3,0,3,2,1,1].real, 0.010707123866497949)
 
 exit()
 

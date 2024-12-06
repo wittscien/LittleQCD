@@ -52,6 +52,7 @@ class GFlow:
             # Save to the list.
             self.U_list.append(self.U.copy())
             self.chi_list.append(self.chi.copy())
+        return self.U.copy(), self.chi.copy()
 
     def adjoint(self, xi):
         # In place
@@ -87,6 +88,7 @@ class GFlow:
             self.xi.field = xp.copy(lambda0.field)
             # Save to the list.
             self.xi_list.append(self.xi.copy())
+        return self.xi.copy()
 
     def plot(self):
         xp = get_backend()
