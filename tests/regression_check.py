@@ -40,30 +40,37 @@ corr = {}
 corr['pion'] = xp.zeros((len(confs), geo_vec[0]), dtype=complex)
 corr['proton'] = xp.zeros((len(confs), geo_vec[0]), dtype=complex)
 
+first_run = False
 U = Gauge(geometry)
-xp.random.seed(0)
-U.init_random()
-# Print out to set explicitly in cvc
-for t in range(geometry.T):
-    for x in range(geometry.X):
-        for y in range(geometry.Y):
-            for z in range(geometry.Z):
-                for mu in range(4):
-                    for a in range(3):
-                        for b in range(3):
-                            loc_real = ((((((t*geometry.X+x)*geometry.Y+y)*geometry.Z+z)*geometry.Nl+mu)*geometry.Nc+a)*geometry.Nc+b)*2
-                            # print("                if (loc_real == %d){*(g+loc_real) = %.16f; *(g+loc_imag) = %.16f;}" % (loc_real, U.field[t,x,y,z,mu,a,b].real, U.field[t,x,y,z,mu,a,b].imag))
-
 src_test = Fermion(geometry)
-src_test.init_random()
-for t in range(geometry.T):
-    for x in range(geometry.X):
-        for y in range(geometry.Y):
-            for z in range(geometry.Z):
-                for A in range(4):
-                    for a in range(3):
-                        loc_real = (((((t*geometry.X+x)*geometry.Y+y)*geometry.Z+z)*geometry.Ns+A)*geometry.Nc+a)*2
-                        # print("              if (loc_real == %d){*(s+loc_real) = %.16f; *(s+loc_imag) = %.16f;}" % (loc_real, src_test.field[t,x,y,z,A,a].real, src_test.field[t,x,y,z,A,a].imag))
+if first_run:
+    xp.random.seed(0)
+    U.init_random()
+    U.write("U_random.h5")
+    # Print out to set explicitly in cvc
+    for t in range(geometry.T):
+        for x in range(geometry.X):
+            for y in range(geometry.Y):
+                for z in range(geometry.Z):
+                    for mu in range(4):
+                        for a in range(3):
+                            for b in range(3):
+                                loc_real = ((((((t*geometry.X+x)*geometry.Y+y)*geometry.Z+z)*geometry.Nl+mu)*geometry.Nc+a)*geometry.Nc+b)*2
+                                print("                if (loc_real == %d){*(g+loc_real) = %.16f; *(g+loc_imag) = %.16f;}" % (loc_real, U.field[t,x,y,z,mu,a,b].real, U.field[t,x,y,z,mu,a,b].imag))
+
+    src_test.init_random()
+    src_test.write("s_random.h5")
+    for t in range(geometry.T):
+        for x in range(geometry.X):
+            for y in range(geometry.Y):
+                for z in range(geometry.Z):
+                    for A in range(4):
+                        for a in range(3):
+                            loc_real = (((((t*geometry.X+x)*geometry.Y+y)*geometry.Z+z)*geometry.Ns+A)*geometry.Nc+a)*2
+                            print("              if (loc_real == %d){*(s+loc_real) = %.16f; *(s+loc_imag) = %.16f;}" % (loc_real, src_test.field[t,x,y,z,A,a].real, src_test.field[t,x,y,z,A,a].imag))
+else:
+    U.read("U_random.h5")
+    src_test.read("s_random.h5")
 
 #%%
 

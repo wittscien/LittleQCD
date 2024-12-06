@@ -50,6 +50,14 @@ class Field:
     def __repr__(self):
         return f"{self.field}"
 
+    def read(self, filename):
+        with h5py.File(filename, 'r') as f:
+            self.field = f['field'][()]
+
+    def write(self, filename):
+        with h5py.File(filename, 'w') as f:
+            f.create_dataset('field', data=self.field)
+
 
 class Gauge(Field):
     def __init__(self, geometry: QCD_geometry):
@@ -91,14 +99,6 @@ class Gauge(Field):
             return self.__mul__(other)
         else:
             return NotImplemented
-
-    def read(self, filename):
-        with h5py.File(filename, 'r') as f:
-            self.field = f['field'][()]
-
-    def write(self, filename):
-        with h5py.File(filename, 'w') as f:
-            f.create_dataset('field', data=self.field)
 
     def init_trivial(self):
         xp = get_backend()
