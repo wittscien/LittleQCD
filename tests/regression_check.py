@@ -16,14 +16,16 @@ from opt_einsum import contract
 import numpy as np
 import matplotlib.pyplot as plt
 import tqdm
+import lqcd.utils as ut
 
 
 
 def check(msg, a, b):
     if np.isclose(a, b):
-        print("%s passed" % (msg))
+        print(f"{msg} {ut.bcolors.OKGREEN}{'passed'}{ut.bcolors.ENDC}")
     if not np.isclose(a, b):
-        raise ValueError("Regression check of %s failed." % (msg))
+        raise ValueError(f"Regression check of {msg} {ut.bcolors.FAIL}{'failed'}{ut.bcolors.ENDC}")
+
 #%%
 # Initialization
 set_backend("numpy")
