@@ -7,8 +7,8 @@ import lqcd.utils as ut
 
 class Smear:
     def __init__(self, U: Gauge, psi: Fermion, params):
-        self.U = U
-        self.psi = psi
+        self.U = U.copy()
+        self.psi = psi.copy()
         self.geometry = U.geometry
         if params['tech'] == 'Jacobi':
             self.niter = params["niter"]

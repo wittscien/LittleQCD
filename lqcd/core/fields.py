@@ -58,6 +58,12 @@ class Field:
         with h5py.File(filename, 'w') as f:
             f.create_dataset('field', data=self.field)
 
+    def copy(self):
+        xp = get_backend()
+        result = type(self)(self.geometry)
+        result.field = xp.copy(self.field)
+        return result
+
 
 class Gauge(Field):
     def __init__(self, geometry: QCD_geometry):

@@ -8,7 +8,7 @@ import lqcd.utils as ut
 
 class Smear:
     def __init__(self, U: Gauge, params):
-        self.U = U
+        self.U = U.copy()
         self.geometry = U.geometry
         if params['tech'] == 'APE':
             self.alpha = params["alpha"]
@@ -40,9 +40,8 @@ class Smear:
         # The Qmu with rho = 1 is the Z (a Gauge object, has all mu) in the gradient flow.
         # rho can be factored out.
         xp = get_backend()
-        result = Gauge(self.geometry)
         Uold = Gauge(self.geometry)
-        result.field = xp.copy(self.U.field)
+        result = self.U.copy()
         for _ in range(self.niter):
             Uold.field = xp.copy(result.field)
             for mu in [0,1,2,3]:

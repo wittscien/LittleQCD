@@ -1,7 +1,8 @@
 # Check log
 # 2024.12.03: check with cvc on the random 4448 configuration for APE_space, Stout, plaquette_measure, apply_boundary_condition_periodic_quark. This means the underlying functions like U.shift() is working correctly.
 # 2024.12.04: the Dirac operator passed the check.
-# 2024.12.06: the inverter passed the check.
+# 2024.12.06: the inverter passed the check; the adjoint gradient flow passed the check.
+# 2024.12.07: the inverter with tm rotation passed the check.
 
 
 
@@ -9,7 +10,7 @@ from lqcd.io import set_backend, get_backend
 from lqcd.core import *
 from lqcd.gauge import Smear as gSmear
 from lqcd.fermion import DiracOperator, Smear as qSmear
-from lqcd.algorithms import Inverter, propagator
+from lqcd.algorithms import Inverter, propagator, GFlow
 import lqcd.measurements.contract_funcs as cf
 import lqcd.measurements.analysis_funcs as af
 from opt_einsum import contract
@@ -22,7 +23,7 @@ import lqcd.utils as ut
 
 def check(msg, a, b):
     if np.isclose(a, b):
-        print(f"{msg} {ut.bcolors.OKGREEN}{'passed'}{ut.bcolors.ENDC}")
+        print(f"{msg} {'check'} {ut.bcolors.OKGREEN}{'passed'}{ut.bcolors.ENDC}")
     if not np.isclose(a, b):
         raise ValueError(f"Regression check of {msg} {ut.bcolors.FAIL}{'failed'}{ut.bcolors.ENDC}")
 
@@ -75,30 +76,30 @@ else:
 #%%
 
 # Test the gauge APE smearing
-check("Original gauge check", U.field[3,0,3,2,1,1,0].real, 0.3767504654460144)
+check("Original gauge", U.field[3,0,3,2,1,1,0].real, 0.3767504654460144)
 Smr = gSmear(U, {"tech": "APE", "alpha": 0.1, "niter": 10})
 U_smeared = Smr.APE_space()
-check("APE smearing check", U_smeared.field[3,0,3,2,1,1,0].real, -0.06151140865874503)
-check("Plaquette check", U_smeared.plaquette_measure(), 0.5328135787934447)
+check("APE smearing", U_smeared.field[3,0,3,2,1,1,0].real, -0.06151140865874503)
+check("Plaquette", U_smeared.plaquette_measure(), 0.5328135787934447)
 
 # Test the gauge Stout smearing
 Smr = gSmear(U, {"tech": "Stout", "rho": 0.1, "niter": 10})
 U_smeared_Stout = Smr.Stout()
-check("Stout smearing check", U_smeared_Stout.field[3,0,3,2,1,1,0].real, -0.22355297609106276)
+check("Stout smearing", U_smeared_Stout.field[3,0,3,2,1,1,0].real, -0.22355297609106276)
 
 # Test the boundary condition
 U_with_phase = U.apply_boundary_condition_periodic_quark()
-check("BC check", U_with_phase.field[3,0,3,2,1,1,0].real, 0.3767504654460144)
-check("Plaquette check", U_with_phase.plaquette_measure(), 0.11845355681410792)
+check("Boundary condition", U_with_phase.field[3,0,3,2,1,1,0].real, 0.3767504654460144)
+check("Plaquette", U_with_phase.plaquette_measure(), 0.11845355681410792)
 
 # Test the Dirac operator
 # This point corresponds to ix = 4952, and 2480 for the field with even site. I find this by violently compare the field values.
 Q = DiracOperator(U_with_phase, {'fermion_type':'twisted_mass_clover', 'kappa': 0.177, 'mu': 0.1129943503, 'csw': 1.74})
-check("Random spinor check", src_test.field[3,0,3,2,1,1].real, 0.06540420131142144)
+check("Random spinor", src_test.field[3,0,3,2,1,1].real, 0.06540420131142144)
 # The hopping term: -2.2875939515965786
 # Without the hopping term: -0.40060389427277915.
-check("Dirac check", Q.Dirac(src_test, 'u')[3,0,3,2,1,1].real, -2.6881978458693574)
-check("Dirac check", Q.Dirac(src_test, 'd')[3,0,3,2,1,1].real, -2.6737061753850258)
+check("Dirac", Q.Dirac(src_test, 'u')[3,0,3,2,1,1].real, -2.6881978458693574)
+check("Dirac", Q.Dirac(src_test, 'd')[3,0,3,2,1,1].real, -2.6737061753850258)
 
 # Test the inverter, without the tm rotation
 # Inverter parameters
@@ -106,8 +107,27 @@ inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual":
 x0 = Fermion(geometry)
 Inv = Inverter(Q, inv_params)
 src_test_inv = Inv.invert(src_test, x0, 'u')
-check("Inverter success check", (Q.Dirac(src_test_inv, 'u')-src_test).field[3,0,3,2,1,1].real, 0)
-check("Inverter check", src_test_inv.field[3,0,3,2,1,1].real, -0.07115880763279339)
+check("Inverter success", (Q.Dirac(src_test_inv, 'u')-src_test).field[3,0,3,2,1,1].real, 0)
+check("Inverter", src_test_inv.field[3,0,3,2,1,1].real, -0.07115880763279339)
+
+# Test the adjoint gradient flow
+src = Fermion(geometry)
+src.point_source([3,0,3,2,1,1])
+gflow = GFlow(U_with_phase, src_test, {"dt": 0.01, "niter": 20})
+gflow.forward()
+gflow.adjoint(src)
+check("Adjoint gradient flow", gflow.xi.field[3,0,3,2,1,1].real, 0.23570679544838258)
+
+# Test the inverter on a adj flowed source, with the tm rotation also checked
+inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": True, "verbose": False, "tm_rotation": True}
+Inv = Inverter(Q, inv_params)
+prop_gflow = Inv.invert(gflow.xi, x0, 'u')
+check("Inverter with tm rotation", prop_gflow.field[3,0,3,2,1,1].real, 0.021521391753250213)
+
+# Test the forward gradient flow, which must agree since the adjoint gradient flow which uses the forward flow passed the check.
+gflow = GFlow(U_with_phase, prop_gflow, {"dt": 0.01, "niter": 20})
+gflow.forward()
+check("Forward adjoint flow", gflow.chi.field[3,0,3,2,1,1].real, 0.010707123866497949)
 
 exit()
 

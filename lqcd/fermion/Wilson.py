@@ -7,7 +7,7 @@ import lqcd.utils as ut
 
 class DiracOperator:
     def __init__(self, U: Gauge, params):
-        self.U = U
+        self.U = U.copy()
         self.geometry = U.geometry
         self.fermion_type = params['fermion_type']
         if 'm' in params:
