@@ -1,8 +1,9 @@
 # Check log
-# 2024.12.03: check with cvc on the random 4448 configuration for APE_space, Stout, plaquette_measure, apply_boundary_condition_periodic_quark. This means the underlying functions like U.shift() is working correctly.
-# 2024.12.04: the Dirac operator passed the check.
-# 2024.12.06: the inverter passed the check; the adjoint gradient flow passed the check.
+
 # 2024.12.07: the inverter with tm rotation passed the check.
+# 2024.12.06: the inverter passed the check; the adjoint gradient flow passed the check.
+# 2024.12.04: the Dirac operator passed the check.
+# 2024.12.03: check with cvc on the random 4448 configuration for APE_space, Stout, plaquette_measure, apply_boundary_condition_periodic_quark. This means the underlying functions like U.shift() is working correctly.
 
 
 
