@@ -1,6 +1,7 @@
 # Check log
 # 2024.12.03: check with cvc on the random 4448 configuration for APE_space, Stout, plaquette_measure, apply_boundary_condition_periodic_quark. This means the underlying functions like U.shift() is working correctly.
 # 2024.12.04: the Dirac operator passed the check.
+# 2024.12.06: the inverter passed the check.
 
 
 
@@ -19,9 +20,10 @@ import tqdm
 
 
 def check(msg, a, b):
-    print(msg+': ', a / b)
+    if np.isclose(a, b):
+        print("%s passed" % (msg))
     if not np.isclose(a, b):
-        raise ValueError("Regression check failed.")
+        raise ValueError("Regression check of %s failed." % (msg))
 #%%
 # Initialization
 set_backend("numpy")
@@ -89,20 +91,19 @@ check("Random spinor check", src_test.field[3,0,3,2,1,1].real, 0.065404201311421
 check("Dirac check", Q.Dirac(src_test, 'u')[3,0,3,2,1,1].real, -2.6881978458693574)
 check("Dirac check", Q.Dirac(src_test, 'd')[3,0,3,2,1,1].real, -2.6737061753850258)
 
-# Test the inverter
+# Test the inverter, without the tm rotation
 # Inverter parameters
-inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False}
+inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": True, "verbose": False, "tm_rotation": False}
 x0 = Fermion(geometry)
 Inv = Inverter(Q, inv_params)
 src_test_inv = Inv.invert(src_test, x0, 'u')
-print(Q.Dirac(src_test_inv, 'u'))
-print(src_test_inv.field[3,0,3,2,1,1].real)
-# check("Inverter check", src_test_inv.field[3,0,3,2,1,1].real, -2.680759633701542)
+check("Inverter success check", (Q.Dirac(src_test_inv, 'u')-src_test).field[3,0,3,2,1,1].real, 0)
+check("Inverter check", src_test_inv.field[3,0,3,2,1,1].real, -0.07115880763279339)
 
 exit()
 
 # Inverter parameters
-inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False}
+inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False, "tm_rotation": True}
 
 # Source: point-to-all propagator
 quark_smr_params = {"tech": "Jacobi", "kappa": 0.2, "niter": 20}

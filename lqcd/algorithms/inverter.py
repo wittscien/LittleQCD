@@ -14,6 +14,9 @@ class Inverter:
         self.maxit = params["maxit"]
         self.check_residual = params["check_residual"]
         self.geometry = D.geometry
+        self.verbose = False
+        if self.verbose in params: self.verbose = params["verbose"]
+        if self.D.fermion_type == 'twisted_mass_clover': self.tm_rotation = params["tm_rotation"]
 
     def BiCGStab(self, b, x0, flavor):
         r0 = b - self.D.Dirac(x0, flavor)
@@ -27,7 +30,7 @@ class Inverter:
         cnt = 0
         while True:
             cnt += 1
-            # print("BiCGStab: ", r0.norm())
+            if self.verbose: print("BiCGStab: ", r0.norm())
             rho_new = r0_prime.dot(r0)
             if rho_new == 0: raise ValueError("Breakdown: rho = 0.")
 
@@ -56,7 +59,7 @@ class Inverter:
 
     def invert(self, b, x0, flavor):
         # src rotation
-        if self.D.fermion_type == 'twisted_mass_clover':
+        if self.D.fermion_type == 'twisted_mass_clover' and self.tm_rotation:
             src_temp = tm_rotation(b, flavor)
         else:
             src_temp = b
@@ -64,9 +67,9 @@ class Inverter:
             prop_temp = self.BiCGStab(src_temp, x0, flavor)
         # Check residual
         if self.check_residual:
-            print((self.D.Dirac(prop_temp, 'u') - src_temp).norm())
+            print("%s residual =" % (self.method), (self.D.Dirac(prop_temp, flavor) - src_temp).norm())
         # snk rotation
-        if self.D.fermion_type == 'twisted_mass_clover':
+        if self.D.fermion_type == 'twisted_mass_clover' and self.tm_rotation:
             prop_pb = tm_rotation(prop_temp, flavor)
         else:
             prop_pb = prop_temp
@@ -83,7 +86,7 @@ def propagator(Q, inv_params, srcfull, flavor):
         for c in range(3):
             src = Fermion(geometry)
             src.field = srcfull.field[:,:,:,:,:,s,:,c]
-            prop.field[:,:,:,:,:,s,:,c] = Inv.invert(src, x0, 'u').field
+            prop.field[:,:,:,:,:,s,:,c] = Inv.invert(src, x0, flavor).field
     return prop
 
 
@@ -99,7 +102,7 @@ if __name__ == "__main__":
     src.point_source([0, 0, 0, 0, 0, 0])
 
     Q = DiracOperator(U, {'fermion_type':'twisted_mass_clover', 'm': 3, 'mu': 0.1, 'csw': 0.1})
-    Inv = Inverter(Q, {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": True})
+    Inv = Inverter(Q, {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": True, "tm_rotation": True})
     x0 = Fermion(geometry)
     prop = Inv.invert(src, x0, 'u')
 
@@ -107,7 +110,7 @@ if __name__ == "__main__":
     # print((Q.Dirac(prop, 'u') - src).norm())
 
     # The full propagator
-    inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False}
+    inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False, "tm_rotation": True}
     srcfull = Propagator(geometry)
     for s in range(4):
         for c in range(3):
