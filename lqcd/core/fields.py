@@ -267,7 +267,7 @@ class Gauge(Field):
 
     def density(self):
         # The gluonic action density of the gauge field, Eq. 2.1 of [Luscher] JHEP 2010.
-        # It is written as 1/4 * G_munu^a G_munu^a, I do sum over all sites and trace over color.
+        # It is written as 1/4 * G_munu^a G_munu^a, I do sum over all sites and trace over color. I divided by the volume to average but I don't know the definition people used.
         result = 0
         for mu in range(self.geometry.Nl):
             for nu in range(self.geometry.Nl):
@@ -275,7 +275,7 @@ class Gauge(Field):
                 fwdnu = self.mu_num2st[nu][0]
                 Gmunu = self.field_strength(fwdmu, fwdnu)
                 result += contract("txyzab, txyzba", Gmunu.field, Gmunu.field)
-        return result / 2
+        return result / 2 / (self.Nc * self.T * self.X * self.Y * self.Z) # / V4
 
     def Zgf(self):
         # The Z in the gradient flow. Negative derivative of the plaquette action.

@@ -111,6 +111,12 @@ class GFlow:
         plt.draw()
         plt.savefig('GFlow_test.pdf',transparent=True)
 
+        # Scale setting
+        # sqrt(t0) = 0.166 fm
+        t0 = n_list[xp.argmin(xp.abs(density_list - 0.3))] * self.dt
+        a = 0.166 / xp.sqrt(t0)
+        print("The lattice spacing a = %.4f fm" % a)
+
 if __name__ == "__main__":
     from lqcd.io import set_backend
     import matplotlib.pyplot as plt
@@ -123,7 +129,7 @@ if __name__ == "__main__":
     chi = Fermion(geometry)
     chi.point_source([0, 0, 0, 0, 0, 0])
 
-    gflow = GFlow(U, chi, {"dt": 0.01, "niter": 10})
+    gflow = GFlow(U, chi, {"dt": 0.01, "niter": 100})
     gflow.forward()
     gflow.adjoint(gflow.chi)
     gflow.plot()
