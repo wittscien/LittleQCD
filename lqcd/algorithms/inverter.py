@@ -15,7 +15,7 @@ class Inverter:
         self.check_residual = params["check_residual"]
         self.geometry = D.geometry
         self.verbose = 0
-        if self.verbose in params: self.verbose = params["verbose"]
+        if "verbose" in params: self.verbose = params["verbose"]
         if self.D.fermion_type == 'twisted_mass_clover': self.tm_rotation = params["tm_rotation"]
 
     def BiCGStab(self, b, x0, flavor):
