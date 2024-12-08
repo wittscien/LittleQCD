@@ -14,7 +14,7 @@ class Inverter:
         self.maxit = params["maxit"]
         self.check_residual = params["check_residual"]
         self.geometry = D.geometry
-        self.verbose = False
+        self.verbose = 0
         if self.verbose in params: self.verbose = params["verbose"]
         if self.D.fermion_type == 'twisted_mass_clover': self.tm_rotation = params["tm_rotation"]
 
@@ -30,7 +30,7 @@ class Inverter:
         cnt = 0
         while True:
             cnt += 1
-            if self.verbose: print("BiCGStab: ", r0.norm())
+            if self.verbose >= 2: print("BiCGStab: ", r0.norm())
             rho_new = r0_prime.dot(r0)
             if rho_new == 0: raise ValueError("Breakdown: rho = 0.")
 
@@ -54,7 +54,7 @@ class Inverter:
             if r0.norm() < self.tol: break
             if cnt > self.maxit: raise ValueError("BiCGStab: Max iteration reached.")
 
-        print("BiCGStab: Converged in {} iterations.".format(cnt))
+        if self.verbose >= 1: print("BiCGStab: Converged in {} iterations.".format(cnt))
         return x
 
     def invert(self, b, x0, flavor):
@@ -84,9 +84,8 @@ def propagator(Q, inv_params, srcfull, flavor):
     prop = Propagator(geometry)
     for s in range(4):
         for c in range(3):
-            src = Fermion(geometry)
-            src.field = srcfull.field[:,:,:,:,:,s,:,c]
-            prop.field[:,:,:,:,:,s,:,c] = Inv.invert(src, x0, flavor).field
+            src = srcfull.to_Fermion(s,c)
+            prop.set_Fermion(Inv.invert(src, x0, flavor), s, c)
     return prop
 
 

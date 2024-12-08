@@ -521,6 +521,14 @@ class Propagator(Field):
         else:
             raise ValueError("Invalid number of indices")
 
+    def to_Fermion(self, s, c):
+        result = Fermion(self.geometry)
+        result.field = self.field[:,:,:,:,:,s,:,c]
+        return result
+
+    def set_Fermion(self, src, s, c):
+        self.field[:,:,:,:,:,s,:,c] = src.field
+
 
 class Gamma:
     def __init__(self, i, Nl=4):

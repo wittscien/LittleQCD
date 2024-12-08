@@ -10,14 +10,21 @@ class Smear:
     def __init__(self, U: Gauge, params):
         self.U = U.copy()
         self.geometry = U.geometry
-        if params['tech'] == 'APE':
+        self.tech = params['tech']
+        if self.tech == 'APE':
             self.alpha = params["alpha"]
             self.niter = params["niter"]
-        elif params['tech'] == 'Stout':
+        elif self.tech == 'Stout':
             self.rho = params["rho"]
             self.niter = params["niter"]
         self.mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
         self.mu_neg = {'t': '-t', '-t': 't', 'x': '-x', '-x': 'x', 'y': '-y', '-y': 'y', 'z': '-z', '-z': 'z'}
+
+    def smear(self):
+        if self.tech == "APE":
+            return self.APE_space()
+        elif self.tech == "Stout":
+            return self.Stout()
 
     def APE_space(self):
         result = Gauge(self.geometry)
@@ -62,8 +69,8 @@ if __name__ == "__main__":
 
     # APE
     Smr = Smear(U, {"tech": "APE", "alpha": 0.1, "niter": 2})
-    U2 = Smr.APE_space()
+    U2 = Smr.smear()
 
     # Stout
     Smr = Smear(U, {"tech": "Stout", "rho": 0.1, "niter": 2})
-    U2 = Smr.Stout()
+    U2 = Smr.smear()

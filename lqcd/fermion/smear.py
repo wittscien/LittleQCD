@@ -6,21 +6,31 @@ import lqcd.utils as ut
 
 
 class Smear:
-    def __init__(self, U: Gauge, psi: Fermion, params):
+    def __init__(self, U: Gauge, params):
         self.U = U.copy()
-        self.psi = psi.copy()
         self.geometry = U.geometry
-        if params['tech'] == 'Jacobi':
+        self.tech = params['tech']
+        if self.tech == 'Jacobi':
             self.niter = params["niter"]
             self.kappa = params["kappa"]
         self.mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
         self.mu_neg = {'t': '-t', '-t': 't', 'x': '-x', '-x': 'x', 'y': '-y', '-y': 'y', 'z': '-z', '-z': 'z'}
 
-    def Jacobi_smear(self):
-        xp = get_backend()
-        result = Fermion(self.geometry)
+    def prop_smear(self, prop: Propagator):
+        # Sink smearing
+        result = Propagator(self.geometry)
+        for s in range(self.geometry.Ns):
+            for c in range(self.geometry.Nc):
+                result.set_Fermion(self.smear(prop.to_Fermion(s,c)), s, c)
+        return result
+
+    def smear(self, psi: Fermion):
+        if self.tech == "Jacobi":
+            return self.Jacobi_smear(psi)
+
+    def Jacobi_smear(self, psi: Fermion):
         psiold = Fermion(self.geometry)
-        result = self.psi.copy()
+        result = psi.copy()
         for _ in range(self.niter):
             psiold = result.copy()
             result = psiold.copy()
@@ -45,8 +55,8 @@ if __name__ == "__main__":
     src = Fermion(geometry)
     src.point_source([0, 0, 0, 0, 0, 0])
 
-    Smr = Smear(U, src, {"tech": "Jacobi", "kappa": 0.1, "niter": 10})
-    src2 = Smr.Jacobi_smear()
+    Smr = Smear(U, {"tech": "Jacobi", "kappa": 0.1, "niter": 10})
+    src2 = Smr.smear(src)
 
     import matplotlib.pyplot as plt
     plt.plot(src.field[0,:,0,0,0,0].real)
