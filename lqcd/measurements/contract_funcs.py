@@ -16,15 +16,15 @@ def pion(Su, Sd):
     return contract('txyzBAba,txyzBAba->txyz', Su.field, xp.conjugate(Sd.field))
 
 # Baryon cross
+# A, B, C: Propagator
 def T1(A, B, C):
-    # A, B, C: propagator type
     eps = epsilon_3d()
-    return -contract('ijk,abc,txyzACia,txyzDCjb,txyzDBkc->txyzAB', eps, eps, A.field, B.field, C.field)
+    return - contract('ijk,abc,txyzACia,txyzDCjb,txyzDBkc->txyzAB', eps, eps, A.field, B.field, C.field)
 
 # Baryon direct
 def T2(A, B, C):
     eps = epsilon_3d()
-    return -contract('ijk,abc,txyzABia,txyzDCjb,txyzDCkc->txyzAB', eps, eps, A.field, B.field, C.field)
+    return - contract('ijk,abc,txyzABia,txyzDCjb,txyzDCkc->txyzAB', eps, eps, A.field, B.field, C.field)
 
 # Momentum projection
 def mom_proj(corr, momvec):
