@@ -1,6 +1,6 @@
 # Check log
 
-# 2024.12.08: The full propagator, the baryon contraction, and the mom projection pass the check. But there are overall minus signs confusion.
+# 2024.12.08: The full propagator, the baryon contraction, and the mom projection pass the check.
 # 2024.12.07: The inverter with tm rotation passed the check.
 # 2024.12.06: The inverter passed the check; the adjoint gradient flow passed the check.
 # 2024.12.04: The Dirac operator passed the check.
@@ -183,7 +183,7 @@ proton_corr_4x4_space_t2 = - cf.T2(Su_ss, GSdG, Su_ss)
 check("baryon 2pt T1", proton_corr_4x4_space_t1[4,0,3,2,3,1].real * 1e12, 2.341817892138944e-12 * 1e12)
 check("baryon 2pt T2", proton_corr_4x4_space_t2[4,0,3,2,3,1].real * 1e12, 2.229013326929249e-12 * 1e12)
 
-proton_corr_4x4_mom_t1 = cf.mom_proj(t1, [0,0,1])
-proton_corr_4x4_mom_t2 = cf.mom_proj(t2, [0,0,1])
+proton_corr_4x4_mom_t1 = cf.mom_proj(proton_corr_4x4_space_t1, [0,0,1])
+proton_corr_4x4_mom_t2 = cf.mom_proj(proton_corr_4x4_space_t2, [0,0,1])
 
-check("baryon 2pt mom projection", proton_corr_4x4_mom_t1[4,3,1].real * 1e12, -3.756442979647557e-12 * 1e12)
+check("baryon 2pt mom projection", proton_corr_4x4_mom_t1[4,3,1].real * 1e12, 3.756442979647557e-12 * 1e12)
