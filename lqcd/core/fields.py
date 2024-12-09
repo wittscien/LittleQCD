@@ -117,7 +117,7 @@ class Gauge(Field):
 
     def init_random(self):
         xp = get_backend()
-        self.field = xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Nl, self.geometry.Nc, self.geometry.Nc) + 1j * xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Nl, self.geometry.Nc, self.geometry.Nc)
+        self.field = xp.random.rand(self.T, self.X, self.Y, self.Z, self.Nl, self.Nc, self.Nc) + 1j * xp.random.rand(self.T, self.X, self.Y, self.Z, self.Nl, self.Nc, self.Nc)
         self.proj_su3()
 
     def proj_su3(self):
@@ -269,8 +269,8 @@ class Gauge(Field):
         # The gluonic action density of the gauge field, Eq. 2.1 of [Luscher] JHEP 2010.
         # It is written as 1/4 * G_munu^a G_munu^a, I do sum over all sites and trace over color. I divided by the volume to average but I don't know the definition people used.
         result = 0
-        for mu in range(self.geometry.Nl):
-            for nu in range(self.geometry.Nl):
+        for mu in range(self.Nl):
+            for nu in range(self.Nl):
                 fwdmu = self.mu_num2st[mu][0]
                 fwdnu = self.mu_num2st[nu][0]
                 Gmunu = self.field_strength(fwdmu, fwdnu)
@@ -288,11 +288,11 @@ class Gauge(Field):
     def to_exp(self):
         # Used in the gradient flow.
         result = Gauge(self.geometry)
-        for t in range(self.geometry.T):
-            for x in range(self.geometry.X):
-                for y in range(self.geometry.Y):
-                    for z in range(self.geometry.Z):
-                        for mu in range(self.geometry.Nl):
+        for t in range(self.T):
+            for x in range(self.X):
+                for y in range(self.Y):
+                    for z in range(self.Z):
+                        for mu in range(self.Nl):
                             result.field[t,x,y,z,mu] = sp.linalg.expm(self.field[t,x,y,z,mu])
         return result
 
@@ -301,7 +301,7 @@ class Gauge(Field):
         xp = get_backend()
         dst = Fermion(self.geometry)
         dst += -8 * src
-        for mu in range(self.geometry.Nl):
+        for mu in range(self.Nl):
             fwdmu = self.mu_num2st[mu][0]
             bwdmu = self.mu_num2st[mu][1]
             dst += (self.mu(fwdmu) * src.shift(fwdmu) + self.mu(bwdmu) * src.shift(bwdmu))
@@ -382,12 +382,104 @@ class GaugeMu(Field):
     def to_exp(self):
         # Used in the Stout smearing.
         result = GaugeMu(self.geometry)
-        for t in range(self.geometry.T):
-            for x in range(self.geometry.X):
-                for y in range(self.geometry.Y):
-                    for z in range(self.geometry.Z):
+        for t in range(self.T):
+            for x in range(self.X):
+                for y in range(self.Y):
+                    for z in range(self.Z):
                         result.field[t,x,y,z] = sp.linalg.expm(self.field[t,x,y,z])
         return result
+
+
+class Fermion(Field):
+    def __init__(self, geometry: QCD_geometry):
+        xp = get_backend()
+        super().__init__(geometry)
+        self.field = xp.zeros((geometry.T, geometry.X, geometry.Y, geometry.Z, geometry.Ns, geometry.Nc), dtype=xp.complex128)
+
+    def __getitem__(self, pos):
+        # The spin-color matrix at [t, x, y, z], [t, x, y, z, s] or the point at [t, x, y, z, s, c]
+        if len(pos) in [4, 5, 6]:
+            return self.field[pos]
+        else:
+            raise ValueError("Invalid number of indices")
+
+    def __setitem__(self, pos, mat):
+        if len(pos) in [4, 5, 6]:
+            self.field[pos] = mat
+        else:
+            raise ValueError("Invalid number of indices")
+
+    def init_zero(self):
+        xp = get_backend()
+        self.field = xp.zeros((self.T, self.X, self.Y, self.Z, self.Ns, self.Nc), dtype=xp.complex128)
+
+    def init_random(self):
+        xp = get_backend()
+        self.field = xp.random.rand(self.T, self.X, self.Y, self.Z, self.Ns, self.Nc) + 1j * xp.random.rand(self.T, self.X, self.Y, self.Z, self.Ns, self.Nc)
+
+    def shift(self, m):
+        xp = get_backend()
+        mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
+        result = Fermion(self.geometry)
+        # psi(x+mu)
+        if m in ['t', 'x', 'y', 'z']:
+            dir = +1
+            mu = mu_st2num[m]
+        # psi(x-mu)
+        elif m in ['-t', '-x', '-y', '-z']:
+            dir = -1
+            mu = mu_st2num[m[1]]
+        result.field = xp.roll(self.field, -dir, axis=mu)
+        return result
+
+    def point_source(self, point):
+        xp = get_backend()
+        self.init_zero()
+        self.field[point[0],point[1],point[2],point[3],point[4],point[5]] = 1
+
+    def wall_source(self, t):
+        xp = get_backend()
+        self.init_zero()
+        self.field[t] = 1
+
+    def Z2_stochastic_time_diluted_source(self, t):
+        xp = get_backend()
+        self.init_zero()
+        self.field[t] = xp.random.choice([1, -1], size=(self.X, self.Y, self.Z, self.Ns, self.Nc))
+
+    def Z2_stochastic_spin_color_diluted_source(self, s, c):
+        xp = get_backend()
+        self.init_zero()
+        self.field[:,:,:,:,s,c] = xp.random.choice([1, -1], size=(self.T, self.X, self.Y, self.Z))
+
+    def Z2_stochastic_time_spin_color_diluted_source(self, t, s, c):
+        xp = get_backend()
+        self.init_zero()
+        self.field[t,:,:,:,s,c] = xp.random.choice([1, -1], size=(self.X, self.Y, self.Z))
+
+    def __mul__(self, other):
+        if isinstance(other, numbers.Number):
+            result = Fermion(self.geometry)
+            result.field = self.field * other
+            return result
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, numbers.Number):
+            return self.__mul__(other)
+
+    def dot(self, other):
+        # psi1^dagger * psi2
+        xp = get_backend()
+        if isinstance(other, Fermion):
+            return contract("txyzsc, txyzsc", xp.conjugate(self.field), other.field)
+        else:
+            return NotImplemented
+
+    def norm(self):
+        xp = get_backend()
+        return xp.sqrt(self.dot(self).real)
 
 
 class Scalar(Field):
@@ -417,88 +509,9 @@ class Scalar(Field):
         else:
             return NotImplemented
 
-
-class Fermion(Field):
-    def __init__(self, geometry: QCD_geometry):
-        xp = get_backend()
-        super().__init__(geometry)
-        self.field = xp.zeros((geometry.T, geometry.X, geometry.Y, geometry.Z, geometry.Ns, geometry.Nc), dtype=xp.complex128)
-
-    def __getitem__(self, pos):
-        # The spin-color matrix at [t, x, y, z], [t, x, y, z, s] or the point at [t, x, y, z, s, c]
-        if len(pos) in [4, 5, 6]:
-            return self.field[pos]
-        else:
-            raise ValueError("Invalid number of indices")
-
-    def __setitem__(self, pos, mat):
-        if len(pos) in [4, 5, 6]:
-            self.field[pos] = mat
-        else:
-            raise ValueError("Invalid number of indices")
-
     def init_random(self):
         xp = get_backend()
-        self.field = xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc) + 1j * xp.random.rand(self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc)
-
-    def shift(self, m):
-        xp = get_backend()
-        mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
-        result = Fermion(self.geometry)
-        # psi(x+mu)
-        if m in ['t', 'x', 'y', 'z']:
-            dir = +1
-            mu = mu_st2num[m]
-        # psi(x-mu)
-        elif m in ['-t', '-x', '-y', '-z']:
-            dir = -1
-            mu = mu_st2num[m[1]]
-        result.field = xp.roll(self.field, -dir, axis=mu)
-        return result
-
-    def point_source(self, point):
-        xp = get_backend()
-        self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
-        self.field[point[0],point[1],point[2],point[3],point[4],point[5]] = 1
-
-    def wall_source(self, t):
-        xp = get_backend()
-        self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
-        self.field[t] = 1
-
-    def Z2_stochastic_time_diluted_source(self, t):
-        xp = get_backend()
-        self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
-        self.field[t] = xp.random.choice([1, -1], size=(self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc))
-
-    def Z2_stochastic_time_spin_color_diluted_source(self, t, s, c):
-        xp = get_backend()
-        self.field = xp.zeros((self.geometry.T, self.geometry.X, self.geometry.Y, self.geometry.Z, self.geometry.Ns, self.geometry.Nc), dtype=xp.complex128)
-        self.field[t,:,:,:,s,c] = xp.random.choice([1, -1], size=(self.geometry.X, self.geometry.Y, self.geometry.Z))
-
-    def __mul__(self, other):
-        if isinstance(other, numbers.Number):
-            result = Fermion(self.geometry)
-            result.field = self.field * other
-            return result
-        else:
-            return NotImplemented
-
-    def __rmul__(self, other):
-        if isinstance(other, numbers.Number):
-            return self.__mul__(other)
-
-    def dot(self, other):
-        # psi1^dagger * psi2
-        xp = get_backend()
-        if isinstance(other, Fermion):
-            return contract("txyzsc, txyzsc", xp.conjugate(self.field), other.field)
-        else:
-            return NotImplemented
-
-    def norm(self):
-        xp = get_backend()
-        return xp.sqrt(self.dot(self).real)
+        self.field = xp.random.rand(self.T, self.X, self.Y, self.Z) + 1j * xp.random.rand(self.T, self.X, self.Y, self.Z)
 
 
 class Propagator(Field):

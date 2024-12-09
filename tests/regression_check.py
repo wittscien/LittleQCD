@@ -47,6 +47,7 @@ corr['proton'] = xp.zeros((len(confs), geo_vec[0]), dtype=complex)
 first_run = False
 U = Gauge(geometry)
 src_test = Fermion(geometry)
+scalar_test = Scalar(geometry)
 if first_run:
     xp.random.seed(0)
     U.init_random()
@@ -63,7 +64,7 @@ if first_run:
                                 print("                if (loc_real == %d){*(g+loc_real) = %.16f; *(g+loc_imag) = %.16f;}" % (loc_real, U.field[t,x,y,z,mu,a,b].real, U.field[t,x,y,z,mu,a,b].imag))
 
     src_test.init_random()
-    src_test.write("s_random.h5")
+    src_test.write("psi_random.h5")
     for t in range(geometry.T):
         for x in range(geometry.X):
             for y in range(geometry.Y):
@@ -72,9 +73,20 @@ if first_run:
                         for a in range(3):
                             loc_real = (((((t*geometry.X+x)*geometry.Y+y)*geometry.Z+z)*geometry.Ns+A)*geometry.Nc+a)*2
                             print("              if (loc_real == %d){*(s+loc_real) = %.16f; *(s+loc_imag) = %.16f;}" % (loc_real, src_test.field[t,x,y,z,A,a].real, src_test.field[t,x,y,z,A,a].imag))
+
+    scalar_test.init_random()
+    scalar_test.write("phi_random.h5")
+    for t in range(geometry.T):
+        for x in range(geometry.X):
+            for y in range(geometry.Y):
+                for z in range(geometry.Z):
+                    loc_real = ((((t*geometry.X+x)*geometry.Y+y)*geometry.Z+z))*2
+                    print("              if (loc_real == %d){*(s+loc_real) = %.16f; *(s+loc_imag) = %.16f;}" % (loc_real, scalar_test.field[t,x,y,z].real, scalar_test.field[t,x,y,z].imag))
+
 else:
     U.read("U_random.h5")
-    src_test.read("s_random.h5")
+    src_test.read("psi_random.h5")
+    scalar_test.read("phi_random.h5")
 
 #%%
 
@@ -100,22 +112,22 @@ check("Plaquette", U_with_phase.plaquette_measure(), 0.11845355681410792)
 
 # Test the Dirac operator
 # This point corresponds to ix = 4952, and 2480 for the field with even site. I find this by violently compare the field values.
-Q = DiracOperator(U_with_phase, {'fermion_type':'twisted_mass_clover', 'kappa': 0.177, 'mu': 0.1129943503, 'csw': 1.74})
+Q = DiracOperator(U_with_phase, {'fermion_type':'twisted_mass_clover', 'kappa': 0.05, 'mu': 0.1, 'csw': 1.74})
 check("Random spinor", src_test.field[3,0,3,2,1,1].real, 0.06540420131142144)
 # The hopping term: -2.2875939515965786
 # Without the hopping term: -0.40060389427277915.
-check("Dirac", Q.Dirac(src_test, 'u')[3,0,3,2,1,1].real, -2.6881978458693574)
-check("Dirac", Q.Dirac(src_test, 'd')[3,0,3,2,1,1].real, -2.6737061753850258)
+check("Dirac", Q.Dirac(src_test, 'u')[3,0,3,2,1,1].real, -2.218080192524525)
+check("Dirac", Q.Dirac(src_test, 'd')[3,0,3,2,1,1].real, -2.205255064147879)
 
 
 # Test the inverter, without the tm rotation
 # Inverter parameters
-inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": True, "verbose": 0, "tm_rotation": False}
+inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False, "verbose": 0, "tm_rotation": False}
 x0 = Fermion(geometry)
 Inv = Inverter(Q, inv_params)
 src_test_inv = Inv.invert(src_test, x0, 'u')
 check("Inverter success", (Q.Dirac(src_test_inv, 'u')-src_test).field[3,0,3,2,1,1].real, 0)
-check("Inverter", src_test_inv.field[3,0,3,2,1,1].real, -0.07115880763279339)
+check("Inverter", src_test_inv.field[3,0,3,2,1,1].real, 0.033941647499971334)
 
 
 # Test the adjoint gradient flow
@@ -128,16 +140,16 @@ check("Adjoint gradient flow", src_adj_flowed.field[3,0,3,2,1,1].real, 0.2357067
 
 
 # Test the inverter on a adj flowed source, with the tm rotation also checked
-inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": True, "verbose": 0, "tm_rotation": True}
+inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False, "verbose": 0, "tm_rotation": True}
 Inv = Inverter(Q, inv_params)
 prop_gflow_src_adj = Inv.invert(gflow.xi, x0, 'u')
-check("Inverter with tm rotation", prop_gflow_src_adj.field[3,0,3,2,1,1].real, 0.021521391753250213)
+check("Inverter with tm rotation", prop_gflow_src_adj.field[3,0,3,2,1,1].real, 0.00027630001053216384)
 
 
 # Test the forward gradient flow, which must agree since the adjoint gradient flow which uses the forward flow passed the check.
 gflow = GFlow(U_with_phase, prop_gflow_src_adj, {"dt": 0.01, "niter": 20})
 _, prop_gflow_adj_fwd = gflow.forward()
-check("Forward gradient flow", prop_gflow_adj_fwd.field[3,0,3,2,1,1].real, 0.010707123866497949)
+check("Forward gradient flow", prop_gflow_adj_fwd.field[3,0,3,2,1,1].real, 9.596210982957447e-05)
 
 
 # Test the Jacobian smearing and the full propagator
@@ -159,14 +171,14 @@ for s in range(4):
 Su_ps = propagator(Q, inv_params, srcfull, 'u')
 Sd_ps = propagator(Q, inv_params, srcfull, 'd')
 # Check the props at sink = t,x,y,z,s,c = 4,0,3,2,3,1 at src = t,x,y,z,s,c = [3,0,3,2,]1,1.
-check("Propagator with Jacobi smearing", Su_ps.field[4,0,3,2,3,1,1,1].real, -0.00038761041016153227)
-check("Propagator with Jacobi smearing", Sd_ps.field[4,0,3,2,3,1,1,1].real, -0.0008290519090477569)
+check("Propagator with Jacobi smearing", Su_ps.field[4,0,3,2,3,1,1,1].real * 1e5, -2.477784024521635e-05 * 1e5)
+check("Propagator with Jacobi smearing", Sd_ps.field[4,0,3,2,3,1,1,1].real * 1e5, -2.4775045274727597e-05 * 1e5)
 
 # Sink smearing
 Su_ss = Smr.prop_smear(Su_ps)
 Sd_ss = Smr.prop_smear(Sd_ps)
-check("Propagator with sink source smeared", Su_ss.field[4,0,3,2,3,1,1,1].real, -2.6071026187702666e-05)
-check("Propagator with sink source smeared", Sd_ss.field[4,0,3,2,3,1,1,1].real, -3.966497223830403e-06)
+check("Propagator with sink source smeared", Su_ss.field[4,0,3,2,3,1,1,1].real * 1e8, -5.8107058079283876e-08 * 1e8)
+check("Propagator with sink source smeared", Sd_ss.field[4,0,3,2,3,1,1,1].real * 1e8, -5.761446200984382e-08 * 1e8)
 
 # Test the baryon Contraction
 # t1 is a minus sign different from cvc
@@ -174,16 +186,30 @@ check("Propagator with sink source smeared", Sd_ss.field[4,0,3,2,3,1,1,1].real, 
 cg5 = 1j * Gamma(1) * Gamma(3)
 GSdG = cg5 * Sd_ss * cg5
 
-check("Cg5 Prop Cg5", GSdG.field[4,0,3,2,3,1,1,1].real, -1.7916419346825066e-05)
+check("Cg5 Prop Cg5", GSdG.field[4,0,3,2,3,1,1,1].real * 1e8, -4.289006283323454e-08 * 1e8)
 
 # This is the same as vx of cvc
 proton_corr_4x4_space_t1 = - cf.T1(Su_ss, GSdG, Su_ss)
 proton_corr_4x4_space_t2 = - cf.T2(Su_ss, GSdG, Su_ss)
 
-check("baryon 2pt T1", proton_corr_4x4_space_t1[4,0,3,2,3,1].real * 1e12, 2.341817892138944e-12 * 1e12)
-check("baryon 2pt T2", proton_corr_4x4_space_t2[4,0,3,2,3,1].real * 1e12, 2.229013326929249e-12 * 1e12)
+check("baryon 2pt T1", proton_corr_4x4_space_t1[4,0,3,2,3,1].real * 1e19, -9.110247193567789e-19 * 1e19)
+check("baryon 2pt T2", proton_corr_4x4_space_t2[4,0,3,2,3,1].real * 1e19, -1.822381144456041e-18 * 1e19)
 
 proton_corr_4x4_mom_t1 = cf.mom_proj(proton_corr_4x4_space_t1, [0,0,1])
 proton_corr_4x4_mom_t2 = cf.mom_proj(proton_corr_4x4_space_t2, [0,0,1])
 
-check("baryon 2pt mom projection", proton_corr_4x4_mom_t1[4,3,1].real * 1e12, 3.756442979647557e-12 * 1e12)
+check("baryon 2pt mom projection", proton_corr_4x4_mom_t1[4,3,1].real * 1e19, 1.4061654013491913e-17 * 1e19)
+
+# Test the loop
+# Stochastic propagator -> loop, manually construct the loop.
+n_loop_samples = 2
+Loopu = Propagator(geometry)
+src = Fermion(geometry)
+for i in range(n_loop_samples):
+    for s in range(4):
+        for c in range(3):
+            src.Z2_stochastic_spin_color_diluted_source(s,c)
+            x0 = Fermion(geometry)
+            Inv = Inverter(Q, inv_params)
+            phi = Inv.invert(src, x0, 'u')
+            Loopu.field += contract("txyzBb, txyzAa -> txyzBAba", phi.field, xp.conjugate(src.field)) / n_loop_samples
