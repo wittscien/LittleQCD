@@ -199,17 +199,3 @@ proton_corr_4x4_mom_t1 = cf.mom_proj(proton_corr_4x4_space_t1, [0,0,1])
 proton_corr_4x4_mom_t2 = cf.mom_proj(proton_corr_4x4_space_t2, [0,0,1])
 
 check("baryon 2pt mom projection", proton_corr_4x4_mom_t1[4,3,1].real * 1e19, 1.4061654013491913e-17 * 1e19)
-
-# Test the loop
-# Stochastic propagator -> loop, manually construct the loop.
-n_loop_samples = 2
-Loopu = Propagator(geometry)
-src = Fermion(geometry)
-for i in range(n_loop_samples):
-    for s in range(4):
-        for c in range(3):
-            src.Z2_stochastic_spin_color_diluted_source(s,c)
-            x0 = Fermion(geometry)
-            Inv = Inverter(Q, inv_params)
-            phi = Inv.invert(src, x0, 'u')
-            Loopu.field += contract("txyzBb, txyzAa -> txyzBAba", phi.field, xp.conjugate(src.field)) / n_loop_samples

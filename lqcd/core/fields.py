@@ -452,6 +452,10 @@ class Fermion(Field):
         self.init_zero()
         self.field[:,:,:,:,s,c] = xp.random.choice([1, -1], size=(self.T, self.X, self.Y, self.Z))
 
+    def Z2_stochastic_spin_color_diluted_source_from_scalar(self, s, c, phi):
+        self.init_zero()
+        self.field[:,:,:,:,s,c] = phi.field
+
     def Z2_stochastic_time_spin_color_diluted_source(self, t, s, c):
         xp = get_backend()
         self.init_zero()
@@ -542,6 +546,10 @@ class Propagator(Field):
     def set_Fermion(self, src, s, c):
         self.field[:,:,:,:,:,s,:,c] = src.field
 
+    def trace(self):
+        result = Scalar(self.geometry)
+        result.field = contract("txyzAAaa -> txyz", self.field)
+        return result
 
 class Gamma:
     def __init__(self, i, Nl=4):
