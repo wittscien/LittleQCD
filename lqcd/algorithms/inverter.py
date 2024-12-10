@@ -1,8 +1,6 @@
-from opt_einsum import contract
 from lqcd.io import get_backend
-from lqcd.core import *
+from lqcd.core import QCD_geometry, Gauge, Fermion, Propagator
 from lqcd.fermion import DiracOperator, tm_rotation
-import lqcd.utils as ut
 
 
 

@@ -1,4 +1,4 @@
-from lqcd.io.backend import set_backend, get_backend
+from lqcd.io.backend import get_backend
 from opt_einsum import contract
 
 

@@ -1,9 +1,8 @@
 import tqdm
-import pickle
 import matplotlib.pyplot as plt
 from pathlib import Path
 from lqcd.io import get_backend
-from lqcd.core import *
+from lqcd.core import QCD_geometry, Gauge
 from lqcd.algorithms import mc_funcs as mf
 
 

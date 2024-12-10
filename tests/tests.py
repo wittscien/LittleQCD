@@ -1,5 +1,5 @@
 from lqcd.io import set_backend, get_backend
-from lqcd.core import *
+from lqcd.core import QCD_geometry, Gauge, GaugeMu, Scalar, Fermion, Gamma, Propagator, sigma_munu
 from lqcd.fermion import DiracOperator
 import lqcd.utils as ut
 

@@ -9,7 +9,7 @@
 
 #%%
 from lqcd.io import set_backend, get_backend
-from lqcd.core import *
+from lqcd.core import QCD_geometry, Gauge, Scalar, Fermion, Gamma, Propagator
 from lqcd.gauge import Smear as gSmear
 from lqcd.fermion import DiracOperator, Smear as qSmear
 from lqcd.algorithms import Inverter, propagator, GFlow

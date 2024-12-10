@@ -1,8 +1,5 @@
-import scipy as sp
-from opt_einsum import contract
 from lqcd.io import get_backend
-from lqcd.core import *
-import lqcd.utils as ut
+from lqcd.core import QCD_geometry, Gauge, GaugeMu
 
 
 
