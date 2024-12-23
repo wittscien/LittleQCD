@@ -1,10 +1,10 @@
+import lqcd.core as cr
 from lqcd.io import get_backend
-from lqcd.core import QCD_geometry, Gauge, GaugeMu
 
 
 
 class Smear:
-    def __init__(self, U: Gauge, params):
+    def __init__(self, U: cr.Gauge, params):
         self.U = U.copy()
         self.geometry = U.geometry
         self.tech = params['tech']
@@ -24,13 +24,13 @@ class Smear:
             return self.Stout()
 
     def APE_space(self):
-        result = Gauge(self.geometry)
-        Uold = Gauge(self.geometry)
+        result = cr.Gauge(self.geometry)
+        Uold = cr.Gauge(self.geometry)
         result = self.U.copy()
         for _ in range(self.niter):
             Uold = result.copy()
             for mu in [1,2,3]:
-                temp = GaugeMu(self.geometry)
+                temp = cr.GaugeMu(self.geometry)
                 for nu in [1,2,3]:
                     if mu == nu: continue
                     fwdmu = self.mu_num2st[mu][0]
@@ -42,7 +42,7 @@ class Smear:
     def Stout(self):
         # The Qmu with rho = 1 is the Z (a Gauge object, has all mu) in the gradient flow.
         # rho can be factored out.
-        Uold = Gauge(self.geometry)
+        Uold = cr.Gauge(self.geometry)
         result = self.U.copy()
         for _ in range(self.niter):
             Uold = result.copy()
@@ -60,8 +60,8 @@ if __name__ == "__main__":
     set_backend("numpy")
     xp = get_backend()
 
-    geometry = QCD_geometry([8, 4, 4, 4])
-    U = Gauge(geometry)
+    geometry = cr.QCD_geometry([8, 4, 4, 4])
+    U = cr.Gauge(geometry)
     U.init_random()
 
     # APE

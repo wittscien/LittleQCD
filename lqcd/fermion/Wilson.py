@@ -1,10 +1,10 @@
+import lqcd.core as cr
 from lqcd.io.backend import get_backend
-from lqcd.core import QCD_geometry, Gauge, Fermion, Gamma, sigma_munu
 
 
 
 class DiracOperator:
-    def __init__(self, U: Gauge, params):
+    def __init__(self, U: cr.Gauge, params):
         self.U = U.copy()
         self.geometry = U.geometry
         self.fermion_type = params['fermion_type']
@@ -22,26 +22,24 @@ class DiracOperator:
         self.mu_neg = {'t': '-t', '-t': 't', 'x': '-x', '-x': 'x', 'y': '-y', '-y': 'y', 'z': '-z', '-z': 'z'}
 
     def hopping(self, src):
-        xp = get_backend()
-        dst = Fermion(self.geometry)
+        dst = cr.Fermion(self.geometry)
         for mu in range(self.geometry.Nl):
             fwdmu = self.mu_num2st[mu][0]
             bwdmu = self.mu_num2st[mu][1]
-            dst += (-1/2) * ((1 - Gamma(mu)) * (self.U.mu(fwdmu) * src.shift(fwdmu)) + (1 + Gamma(mu)) * (self.U.mu(bwdmu) * src.shift(bwdmu)))
+            dst += (-1/2) * ((1 - cr.Gamma(mu)) * (self.U.mu(fwdmu) * src.shift(fwdmu)) + (1 + cr.Gamma(mu)) * (self.U.mu(bwdmu) * src.shift(bwdmu)))
         return dst
 
     def mass(self, src):
         return (self.m + 4) * src
 
     def clover(self, src):
-        xp = get_backend()
-        dst = Fermion(self.geometry)
+        dst = cr.Fermion(self.geometry)
         for mu in range(self.geometry.Nl - 1):
             for nu in range(mu + 1, self.geometry.Nl):
                 fwdmu = self.mu_num2st[mu][0]
                 fwdnu = self.mu_num2st[nu][0]
                 # 2024.11.13: On the flight back to Beijing: it is checked that the order of applying gamma and gauge to the src does not matter.
-                dst += self.csw * (1 / 2) * sigma_munu(mu, nu) * (self.U.field_strength(fwdmu, fwdnu) * src)
+                dst += self.csw * (1 / 2) * cr.sigma_munu(mu, nu) * (self.U.field_strength(fwdmu, fwdnu) * src)
         return dst
 
     def twisted_mass(self, src, flavor):
@@ -49,18 +47,8 @@ class DiracOperator:
             tau3_sign = 1
         elif flavor == 'd':
             tau3_sign = -1
-        return 1j * self.mu * (Gamma(5) * (tau3_sign * src))
+        return 1j * self.mu * (cr.Gamma(5) * (tau3_sign * src))
 
     def Dirac(self, src, flavor):
         if self.fermion_type == 'twisted_mass_clover':
             return self.hopping(src) + self.mass(src) + self.clover(src) + self.twisted_mass(src, flavor)
-
-
-# twisted mass rotation
-def tm_rotation(src, flavor):
-    xp = get_backend()
-    if flavor == 'u':
-        tau3_sign = 1
-    elif flavor == 'd':
-        tau3_sign = -1
-    return ((1 / xp.sqrt(2)) * (1 + 1j * Gamma(5) * tau3_sign)) * src

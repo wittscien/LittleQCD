@@ -1,6 +1,6 @@
+import lqcd.core as cr
 from lqcd.io import get_backend
-from lqcd.core import QCD_geometry, Gauge, Fermion, Propagator
-from lqcd.fermion import DiracOperator, tm_rotation
+from lqcd.fermion import DiracOperator
 
 
 
@@ -18,11 +18,11 @@ class Inverter:
 
     def BiCGStab(self, b, x0, flavor):
         r0 = b - self.D.Dirac(x0, flavor)
-        r0_prime = Fermion(self.geometry)
+        r0_prime = cr.Fermion(self.geometry)
         r0_prime.field = r0.field
         rho = alpha = omega = 1
-        v = p = Fermion(self.geometry)
-        x = Fermion(self.geometry)
+        v = p = cr.Fermion(self.geometry)
+        x = cr.Fermion(self.geometry)
         x.field = x0.field
 
         cnt = 0
@@ -49,7 +49,6 @@ class Inverter:
             x += alpha * p + omega * s
             r0 = s - omega * t
 
-            if r0.norm() < self.tol: break
             if cnt > self.maxit: raise ValueError("BiCGStab: Max iteration reached.")
 
         if self.verbose >= 1: print("BiCGStab: Converged in {} iterations.".format(cnt))
@@ -74,17 +73,14 @@ class Inverter:
         return prop_pb
 
 
-def propagator(Q, inv_params, srcfull, flavor):
-    # src_list is 4 x 3
-    geometry = Q.geometry
-    x0 = Fermion(geometry)
-    Inv = Inverter(Q, inv_params)
-    prop = Propagator(geometry)
-    for s in range(4):
-        for c in range(3):
-            src = srcfull.to_Fermion(s,c)
-            prop.set_Fermion(Inv.invert(src, x0, flavor), s, c)
-    return prop
+# twisted mass rotation
+def tm_rotation(src, flavor):
+    xp = get_backend()
+    if flavor == 'u':
+        tau3_sign = 1
+    elif flavor == 'd':
+        tau3_sign = -1
+    return ((1 / xp.sqrt(2)) * (1 + 1j * cr.Gamma(5) * tau3_sign)) * src
 
 
 if __name__ == "__main__":
@@ -92,26 +88,28 @@ if __name__ == "__main__":
     set_backend("numpy")
     xp = get_backend()
 
-    geometry = QCD_geometry([8, 4, 4, 4])
-    U = Gauge(geometry)
+    geometry =cr.QCD_geometry([8, 4, 4, 4])
+    U = cr.Gauge(geometry)
     U.init_random()
-    src = Fermion(geometry)
+    src = cr.Fermion(geometry)
     src.point_source([0, 0, 0, 0, 0, 0])
 
     Q = DiracOperator(U, {'fermion_type':'twisted_mass_clover', 'm': 3, 'mu': 0.1, 'csw': 0.1})
     Inv = Inverter(Q, {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": True, "tm_rotation": True})
-    x0 = Fermion(geometry)
+    x0 = cr.Fermion(geometry)
     prop = Inv.invert(src, x0, 'u')
 
     # Check residual in the physical basis. But since for tm rotation, the residual is not zero.
     # print((Q.Dirac(prop, 'u') - src).norm())
 
-    # The full propagator
+    # The full propagator: commented because propagator function is moved to another file.
+    '''
     inv_params = {"method": 'BiCGStab', "tol": 1e-9, "maxit": 500, "check_residual": False, "tm_rotation": True}
-    srcfull = Propagator(geometry)
+    srcfull = cr.Propagator(geometry)
     for s in range(4):
         for c in range(3):
-            src = Fermion(geometry)
+            src = cr.Fermion(geometry)
             src.point_source([0, 0, 0, 0, s, c])
             srcfull.field[:,:,:,:,:,s,:,c] = src.field
     prop = propagator(Q, inv_params, srcfull, 'u')
+    '''

@@ -1,11 +1,11 @@
 from opt_einsum import contract
+import lqcd.core as cr
 from lqcd.io.backend import get_backend
-from lqcd.core import QCD_geometry, Gauge, Fermion, Propagator
 
 
 
 class Smear:
-    def __init__(self, U: Gauge, params):
+    def __init__(self, U: cr.Gauge, params):
         self.U = U.copy()
         self.geometry = U.geometry
         self.tech = params['tech']
@@ -15,20 +15,12 @@ class Smear:
         self.mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
         self.mu_neg = {'t': '-t', '-t': 't', 'x': '-x', '-x': 'x', 'y': '-y', '-y': 'y', 'z': '-z', '-z': 'z'}
 
-    def prop_smear(self, prop: Propagator):
-        # Sink smearing
-        result = Propagator(self.geometry)
-        for s in range(self.geometry.Ns):
-            for c in range(self.geometry.Nc):
-                result.set_Fermion(self.smear(prop.to_Fermion(s,c)), s, c)
-        return result
-
-    def smear(self, psi: Fermion):
+    def smear(self, psi: cr.Fermion):
         if self.tech == "Jacobi":
             return self.Jacobi_smear(psi)
 
-    def Jacobi_smear(self, psi: Fermion):
-        psiold = Fermion(self.geometry)
+    def Jacobi_smear(self, psi: cr.Fermion):
+        psiold = cr.Fermion(self.geometry)
         result = psi.copy()
         for _ in range(self.niter):
             psiold = result.copy()
@@ -47,11 +39,11 @@ if __name__ == "__main__":
     set_backend("numpy")
     xp = get_backend()
 
-    geometry = QCD_geometry([8, 4, 4, 4])
+    geometry = cr.QCD_geometry([8, 4, 4, 4])
     # geometry = QCD_geometry([96, 48, 48, 48])
-    U = Gauge(geometry)
+    U = cr.Gauge(geometry)
     U.init_random()
-    src = Fermion(geometry)
+    src = cr.Fermion(geometry)
     src.point_source([0, 0, 0, 0, 0, 0])
 
     Smr = Smear(U, {"tech": "Jacobi", "kappa": 0.1, "niter": 10})

@@ -1,10 +1,10 @@
+import lqcd.core as cr
 from lqcd.io import get_backend
-from lqcd.core import QCD_geometry, Gauge, Fermion
 
 
 
 class GFlow:
-    def __init__(self, U: Gauge, chi: Fermion, params):
+    def __init__(self, U: cr.Gauge, chi: cr.Fermion, params):
         self.U = U.copy()
         self.chi = chi.copy()
         self.geometry = U.geometry
@@ -83,12 +83,12 @@ class GFlow:
 
     def plot(self):
         xp = get_backend()
-        n_list = xp.arange(self.niter)
-        action_list = xp.zeros(self.niter)
-        density_list = xp.zeros(self.niter)
+        n_list = xp.arange(self.niter + 1)
+        action_list = xp.zeros(self.niter + 1)
+        density_list = xp.zeros(self.niter + 1)
         # smear_list = xp.zeros((self.niter,self.geometry.X))
         # smearadj_list = xp.zeros((self.niter,self.geometry.X))
-        for iter in range(self.niter):
+        for iter in range(self.niter + 1):
             action_list[iter] = self.U_list[iter].plaquette_action()
             density_list[iter] = self.U_list[iter].density().real
             # smear_list[iter] = self.chi_list[iter].field[0,:,0,0,0,0].real
@@ -120,10 +120,10 @@ if __name__ == "__main__":
     set_backend("numpy")
     xp = get_backend()
 
-    geometry = QCD_geometry([8, 4, 4, 4])
-    U = Gauge(geometry)
-    U.read("../algorithms/confs/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % 400)
-    chi = Fermion(geometry)
+    geometry = cr.QCD_geometry([8, 4, 4, 4])
+    U = cr.Gauge(geometry)
+    U.read("../algorithms/confs/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % 1000)
+    chi = cr.Fermion(geometry)
     chi.point_source([0, 0, 0, 0, 0, 0])
 
     gflow = GFlow(U, chi, {"dt": 0.01, "niter": 100})

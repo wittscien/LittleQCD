@@ -1,4 +1,4 @@
-from .Wilson import DiracOperator, tm_rotation
+from .Wilson import DiracOperator
 from .smear import Smear
 
-__all__ = ['DiracOperator', 'tm_rotation', 'Smear']
+__all__ = ['DiracOperator', 'Smear']

@@ -1,5 +1,5 @@
+import lqcd.core as cr
 from lqcd.io import set_backend, get_backend
-from lqcd.core import QCD_geometry, Gauge, GaugeMu, Scalar, Fermion, Gamma, Propagator, sigma_munu
 from lqcd.fermion import DiracOperator
 import lqcd.utils as ut
 
@@ -8,12 +8,12 @@ import lqcd.utils as ut
 set_backend("numpy")
 xp = get_backend()
 
-geometry = QCD_geometry([8, 4, 4, 4])
-U = Gauge(geometry)
+geometry = cr.QCD_geometry([8, 4, 4, 4])
+U = cr.Gauge(geometry)
 U.init_random()
-src = Fermion(geometry)
+src = cr.Fermion(geometry)
 src.point_source([0, 0, 0, 0, 0, 0])
-g5 = Gamma(5)
+g5 = cr.Gamma(5)
 
 
 params = {'fermion_type': 'twisted_mass_clover',

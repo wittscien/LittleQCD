@@ -26,6 +26,16 @@ def T2(A, B, C):
     eps = epsilon_3d()
     return - contract('ijk,abc,txyzABia,txyzDCjb,txyzDCkc->txyzAB', eps, eps, A.field, B.field, C.field)
 
+def phase_grid(momvec, Lx, Ly, Lz):
+    xp = get_backend()
+    px, py, pz = momvec
+    x = xp.arange(Lx)
+    y = xp.arange(Ly)
+    z = xp.arange(Lz)
+    X, Y, Z = xp.meshgrid(x, y, z, indexing='ij')
+    phase = xp.exp(-1j * 2 * xp.pi * px * X / Lx) * xp.exp(-1j * 2 * xp.pi * py * Y / Ly) * xp.exp(-1j * 2 * xp.pi * pz * Z / Lz)
+    return phase
+
 # Momentum projection
 def mom_proj(corr, momvec):
     xp = get_backend()
@@ -35,12 +45,7 @@ def mom_proj(corr, momvec):
     elif corr.ndim == 4:
         T, Lx, Ly, Lz = corr.shape
         corr_type = 'meson'
-    px, py, pz = momvec
-    x = xp.arange(Lx)
-    y = xp.arange(Ly)
-    z = xp.arange(Lz)
-    X, Y, Z = xp.meshgrid(x, y, z, indexing='ij')
-    phase = xp.exp(-1j * 2 * xp.pi * px * X / Lx) * xp.exp(-1j * 2 * xp.pi * py * Y / Ly) * xp.exp(-1j * 2 * xp.pi * pz * Z / Lz)
+    phase = phase_grid(momvec, Lx, Ly, Lz)
     if corr_type == 'baryon':
         projected_corr = xp.zeros((T, dim1, dim2), dtype=complex)
         for t in range(T):
@@ -52,3 +57,13 @@ def mom_proj(corr, momvec):
         for t in range(T):
             projected_corr[t] = xp.sum(corr[t] * phase)
     return projected_corr
+
+
+def hpv_contract_project(contype, A, B, C, momvec):
+    if contype == 'T1':
+        corr_space = - T1(A, B, C)
+    elif contype == 'T2':
+        corr_space = - T2(A, B, C)
+
+    corr_mom = mom_proj(corr_space, momvec)
+    return corr_mom

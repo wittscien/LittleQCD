@@ -1,10 +1,10 @@
 import numbers
-import h5py
+import h5py as h5
 import scipy as sp
 from opt_einsum import contract
 from lqcd.io import get_backend
 from lqcd.core.geometry import QCD_geometry
-import lqcd.utils as ut
+import lqcd.core.core_funcs as rf
 
 
 
@@ -50,11 +50,11 @@ class Field:
         return f"{self.field}"
 
     def read(self, filename):
-        with h5py.File(filename, 'r') as f:
+        with h5.File(filename, 'r') as f:
             self.field = f['field'][()]
 
     def write(self, filename):
-        with h5py.File(filename, 'w') as f:
+        with h5.File(filename, 'w') as f:
             f.create_dataset('field', data=self.field)
 
     def copy(self):
@@ -125,7 +125,7 @@ class Gauge(Field):
                 for y in range(self.Y):
                     for z in range(self.Z):
                         for mu in range(self.Nl):
-                            self.field[t, x, y, z, mu] = ut.proj_su3(self.field[t, x, y, z, mu])
+                            self.field[t, x, y, z, mu] = rf.proj_su3(self.field[t, x, y, z, mu])
 
     def apply_boundary_condition_periodic_quark(self):
         xp = get_backend()
@@ -297,7 +297,6 @@ class Gauge(Field):
 
     def laplacian(self, src):
         # Used in the gradient flow of the quark field.
-        xp = get_backend()
         dst = Fermion(self.geometry)
         dst += -8 * src
         for mu in range(self.Nl):
@@ -460,6 +459,10 @@ class Fermion(Field):
         self.init_zero()
         self.field[t,:,:,:,s,c] = xp.random.choice([1, -1], size=(self.X, self.Y, self.Z))
 
+    def Z2_stochastic_time_spin_color_diluted_source_from_scalar(self, t, s, c, phi):
+        self.init_zero()
+        self.field[t,:,:,:,s,c] = phi.field[t]
+
     def __mul__(self, other):
         if isinstance(other, numbers.Number):
             result = Fermion(self.geometry)
@@ -516,6 +519,10 @@ class Scalar(Field):
         xp = get_backend()
         self.field = xp.random.rand(self.T, self.X, self.Y, self.Z) + 1j * xp.random.rand(self.T, self.X, self.Y, self.Z)
 
+    def init_random_Z2(self):
+        xp = get_backend()
+        self.field = xp.random.choice([1, -1], size=(self.T, self.X, self.Y, self.Z))
+
 
 class Propagator(Field):
     def __init__(self, geometry: QCD_geometry):
@@ -545,10 +552,17 @@ class Propagator(Field):
     def set_Fermion(self, src, s, c):
         self.field[:,:,:,:,:,s,:,c] = src.field
 
-    def trace(self):
+    def trace_spin_color(self):
         result = Scalar(self.geometry)
         result.field = contract("txyzAAaa -> txyz", self.field)
         return result
+
+    def dagger(self):
+        xp = get_backend()
+        result = Propagator(self.geometry)
+        result.field = xp.conjugate((xp.transpose(self.field, axes=(0,1,2,3,5,4,7,6))))
+        return result
+
 
 class Gamma:
     def __init__(self, i, Nl=4):
