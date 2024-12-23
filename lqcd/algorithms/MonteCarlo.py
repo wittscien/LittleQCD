@@ -22,13 +22,13 @@ class MonteCarlo:
         else:
             self.start = 0
         self.mu_num2st = {0: ['t', '-t'], 1: ['x', '-x'], 2: ['y', '-y'], 3: ['z', '-z']}
-        Path("confs/beta_%.2f_L%dx%d"%(self.beta, self.geometry.X, self.geometry.T)).mkdir(parents=True, exist_ok=True)
+        Path("configurations/beta_%.2f_L%dx%d"%(self.beta, self.geometry.X, self.geometry.T)).mkdir(parents=True, exist_ok=True)
 
     def Markov(self):
         # Can be interuppted anytime. The detailed balance is satisfied within each update.
         U0 = cr.Gauge(self.geometry)
         if self.resume:
-            U0.read("confs/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, self.start))
+            U0.read("configurations/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, self.start))
         else:
             U0.init_random()
         self.acceptance_rate = 0
@@ -42,7 +42,7 @@ class MonteCarlo:
             # if step % 10 == 0:
             #     print(f"Step {step}/{self.n_steps}: Action = {self.beta / self.geometry.Nc * Unew.plaquette_action()}")
             if global_step >= self.n_therm and (global_step - self.n_therm) % self.n_take == 0:
-                Unew.write("confs/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, global_step))
+                Unew.write("configurations/beta_%.2f_L%dx%d/beta_%.2f_L%dx%d_conf_%d.h5"%(self.beta, self.geometry.X, self.geometry.T, self.beta, self.geometry.X, self.geometry.T, global_step))
         self.acceptance_rate /= self.n_steps * self.geometry.T * self.geometry.X * self.geometry.Y * self.geometry.Z * self.geometry.Nl * self.n_hit
         print(f"Acceptance rate = {self.acceptance_rate}")
         # I deleted the saving the state of the random generator. The random numbers could be correlated, but it's a game anyway. So I deleted the seed also.
