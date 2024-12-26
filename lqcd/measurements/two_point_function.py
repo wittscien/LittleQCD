@@ -68,6 +68,7 @@ if __name__ == "__main__":
         # Meson Contraction
         pion = cf.pion(Su_ss, Su_ss)
         corr['pion'][i] = cf.mom_proj(pion, [0,0,0])
+        corr['pion'][i] *= np.exp(-1j * (np.array([0,0,0]) @ np.array([0,0,0])))
 
         #%%
         # Baryon Contraction
@@ -80,6 +81,7 @@ if __name__ == "__main__":
         # Parity projection
         P = (np.identity(4) + 1 * gammat) / 2
         proton = contract('ik,zkj,ji->z', P, proton_corr_4x4_mom, P)
+        proton *= np.exp(-1j * (np.array([0,0,0]) @ np.array([0,0,0])))
         T = geo_vec[0]
         # BC fix
         corr['proton'][i] = np.exp(1j * 3 * np.pi * np.arange(T) / T) * np.roll(proton, -0)
