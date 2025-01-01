@@ -23,14 +23,13 @@ if __name__ == "__main__":
     # Gauge field
     geo_vec = [8, 4, 4, 4]
     geometry = cr.QCD_geometry(geo_vec)
-    confs = xp.arange(400, 2020, 20, dtype=int)
-    confs = xp.arange(600, 1020, 20, dtype=int)
+    confs = xp.arange(1000, 2020, 20, dtype=int)
     corr = {}
     corr['pion'] = xp.zeros((len(confs), geo_vec[0]), dtype=complex)
     corr['proton'] = xp.zeros((len(confs), geo_vec[0]), dtype=complex)
     for i in tqdm.tqdm(range(len(confs))):
         U = cr.Gauge(geometry)
-        U.read("../algorithms/confs/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % confs[i])
+        U.read("../algorithms/configurations/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % confs[i])
 
         # Gauge smear
         Smr = gSmear(U, {"tech": "APE", "alpha": 0.1, "niter": 10})
