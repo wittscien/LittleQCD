@@ -1,3 +1,4 @@
+import lqcd.core as cr
 from lqcd.io.backend import get_backend
 from opt_einsum import contract
 
@@ -14,6 +15,12 @@ def epsilon_3d():
 def pion(Su, Sd):
     xp = get_backend()
     return contract('txyzBAba,txyzBAba->txyz', Su.field, xp.conjugate(Sd.field))
+
+def meson(S1, S2, Gamma_snk, Gamma_src):
+    # S1: the prop that is snk to src, but input it as src to snk, for point-to-all propagator
+    # S2: src to snk
+    xp = get_backend()
+    return contract('txyzBAba, AC, txyzDCba, DB->txyz', S2.field, (cr.Gamma(Gamma_src) * cr.Gamma(5)).mat, xp.conjugate(S1.field), (cr.Gamma(5) * cr.Gamma(Gamma_snk)).mat)
 
 # Baryon cross
 # A, B, C: Propagator
@@ -58,8 +65,13 @@ def mom_proj(corr, momvec):
             projected_corr[t] = xp.sum(corr[t] * phase)
     return projected_corr
 
+def meson_contract_project(S1, S2, Gamma_snk, Gamma_src, momvec):
+    corr_space = meson(S1, S2, Gamma_snk, Gamma_src)
+    corr_mom = mom_proj(corr_space, momvec)
+    return corr_mom
 
-def hpv_contract_project(contype, A, B, C, momvec):
+def baryon_contract_project(contype, A, B, C, momvec):
+    # minus sign is my little eta factor.
     if contype == 'T1':
         corr_space = - T1(A, B, C)
     elif contype == 'T2':

@@ -544,6 +544,22 @@ class Propagator(Field):
         else:
             raise ValueError("Invalid number of indices")
 
+    def __mul__(self, other):
+        if isinstance(other, numbers.Number):
+            result = Propagator(self.geometry)
+            result.field = self.field * other
+            return result
+        elif isinstance(other, Propagator):
+            result = Propagator(self.geometry)
+            result.field = contract("txyzABab, txyzBCbc -> txyzACac", self.field, other.field)
+            return result
+        else:
+            return NotImplemented
+
+    def __rmul__(self, other):
+        if isinstance(other, numbers.Number):
+            return self.__mul__(other)
+
     def to_Fermion(self, s, c):
         result = Fermion(self.geometry)
         result.field = self.field[:,:,:,:,:,s,:,c]
