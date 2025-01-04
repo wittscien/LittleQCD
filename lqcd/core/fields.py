@@ -415,6 +415,10 @@ class Fermion(Field):
         xp = get_backend()
         self.field = xp.random.rand(self.T, self.X, self.Y, self.Z, self.Ns, self.Nc) + 1j * xp.random.rand(self.T, self.X, self.Y, self.Z, self.Ns, self.Nc)
 
+    def init_random_Z2(self):
+        xp = get_backend()
+        self.field = xp.random.choice([1, -1], size=(self.T, self.X, self.Y, self.Z, self.Ns, self.Nc))
+
     def shift(self, m):
         xp = get_backend()
         mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
@@ -439,6 +443,11 @@ class Fermion(Field):
         xp = get_backend()
         self.init_zero()
         self.field[t] = 1
+
+    def Z2_stochastic_source(self):
+        xp = get_backend()
+        self.init_zero()
+        self.field = xp.random.choice([1, -1], size=(self.T, self.X, self.Y, self.Z, self.Ns, self.Nc))
 
     def Z2_stochastic_time_diluted_source(self, t):
         xp = get_backend()
