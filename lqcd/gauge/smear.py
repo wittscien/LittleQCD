@@ -23,6 +23,7 @@ class Smear:
         elif self.tech == "Stout":
             return self.Stout()
 
+    # QUDA convention
     def APE_space(self):
         result = cr.Gauge(self.geometry)
         Uold = cr.Gauge(self.geometry)
@@ -34,8 +35,10 @@ class Smear:
                 for nu in [1,2,3]:
                     if mu == nu: continue
                     fwdmu = self.mu_num2st[mu][0]
-                    temp += self.alpha * Uold.Cmunu(mu,nu)
-                result.set_mu(mu, Uold.mu(fwdmu) + temp)
+                    # temp += self.alpha * Uold.Cmunu(mu,nu) # Old CVC convention
+                    temp += self.alpha / 4 * Uold.Cmunu(mu,nu)
+                # result.set_mu(mu, Uold.mu(fwdmu) + temp) # Old CVC convention
+                result.set_mu(mu, (1 - self.alpha)*Uold.mu(fwdmu) + temp)
                 result.proj_su3()
         return result
 
