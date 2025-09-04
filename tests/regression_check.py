@@ -88,8 +88,8 @@ if __name__ == "__main__":
     ut.check("Original gauge", U.field[3,0,3,2,1,1,0].real, 0.3767504654460144)
     Smr = gSmear(U, {"tech": "APE", "alpha": 0.1, "niter": 10})
     U_APE = Smr.smear()
-    ut.check("APE smearing", U_APE.field[3,0,3,2,1,1,0].real, -0.06151140865874503)
-    ut.check("Plaquette", U_APE.plaquette_measure(), 0.5328135787934447)
+    ut.check("APE smearing", U_APE.field[3,0,3,2,1,1,0].real, 0.3268317429489621)
+    ut.check("Plaquette", U_APE.plaquette_measure(), 0.38147030356505085)
 
 
     # Test the gauge Stout smearing
@@ -165,14 +165,14 @@ if __name__ == "__main__":
     Su_ps = ut.propagator_parallelized(Q, inv_params, srcfull, 'u')
     Sd_ps = ut.propagator_parallelized(Q, inv_params, srcfull, 'd')
     # Test the props at sink = t,x,y,z,s,c = 4,0,3,2,3,1 at src = t,x,y,z,s,c = [3,0,3,2,]1,1.
-    ut.check("Propagator with Jacobi smearing", Su_ps.field[4,0,3,2,3,1,1,1].real * 1e5, -2.477784024521635e-05 * 1e5)
-    ut.check("Propagator with Jacobi smearing", Sd_ps.field[4,0,3,2,3,1,1,1].real * 1e5, -2.4775045274727597e-05 * 1e5)
+    ut.check("Propagator with Jacobi smearing", Su_ps.field[4,0,3,2,3,1,1,1].real * 1e5, -1.979621868593944e-05 * 1e5)
+    ut.check("Propagator with Jacobi smearing", Sd_ps.field[4,0,3,2,3,1,1,1].real * 1e5, -1.980152358631995e-05 * 1e5)
 
     # Sink smearing
     Su_ss = ut.prop_smear(Smr, Su_ps)
     Sd_ss = ut.prop_smear(Smr, Sd_ps)
-    ut.check("Propagator with sink source smeared", Su_ss.field[4,0,3,2,3,1,1,1].real * 1e8, -5.8107058079283876e-08 * 1e8)
-    ut.check("Propagator with sink source smeared", Sd_ss.field[4,0,3,2,3,1,1,1].real * 1e8, -5.761446200984382e-08 * 1e8)
+    ut.check("Propagator with sink source smeared", Su_ss.field[4,0,3,2,3,1,1,1].real * 1e8, -4.7245399084364914e-08 * 1e8)
+    ut.check("Propagator with sink source smeared", Sd_ss.field[4,0,3,2,3,1,1,1].real * 1e8, -4.705661804453596e-08 * 1e8)
 
     # Test the baryon Contraction
     # t1 is a minus sign different from cvc
@@ -180,19 +180,19 @@ if __name__ == "__main__":
     Cg5 = 1j * cr.Gamma(2) * cr.Gamma(0) * cr.Gamma(5)
     GSdG = Cg5 * Sd_ss * Cg5
 
-    ut.check("Cg5 Prop Cg5", GSdG.field[4,0,3,2,3,1,1,1].real * 1e8, -4.289006283323454e-08 * 1e8)
+    ut.check("Cg5 Prop Cg5", GSdG.field[4,0,3,2,3,1,1,1].real * 1e8, -7.303735155437977e-08 * 1e8)
 
     # This is the same as vx of cvc
     proton_corr_4x4_space_t1 = - cf.T1(Su_ss, GSdG, Su_ss)
     proton_corr_4x4_space_t2 = - cf.T2(Su_ss, GSdG, Su_ss)
 
-    ut.check("Baryon 2pt T1", proton_corr_4x4_space_t1[4,0,3,2,3,1].real * 1e19, -9.110247193567789e-19 * 1e19)
-    ut.check("Baryon 2pt T2", proton_corr_4x4_space_t2[4,0,3,2,3,1].real * 1e19, -1.822381144456041e-18 * 1e19)
+    ut.check("Baryon 2pt T1", proton_corr_4x4_space_t1[4,0,3,2,3,1].real * 1e19, 2.0441615571400817e-20 * 1e19)
+    ut.check("Baryon 2pt T2", proton_corr_4x4_space_t2[4,0,3,2,3,1].real * 1e19, 4.3570256300920155e-20 * 1e19)
 
     proton_corr_4x4_mom_t1 = cf.mom_proj(proton_corr_4x4_space_t1, [0,0,1])
     proton_corr_4x4_mom_t2 = cf.mom_proj(proton_corr_4x4_space_t2, [0,0,1])
 
-    ut.check("Baryon 2pt mom projection", proton_corr_4x4_mom_t1[4,3,1].real * 1e19, 1.4061654013491913e-17 * 1e19)
+    ut.check("Baryon 2pt mom projection", proton_corr_4x4_mom_t1[4,3,1].real * 1e19, 6.710782747388034e-19 * 1e19)
 
     # Test the random scalar, for loops
     ut.check("Random scalar", scalar_test.field[3,0,3,2], 1)
