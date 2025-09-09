@@ -122,11 +122,13 @@ if __name__ == "__main__":
 
     geometry = cr.QCD_geometry([8, 4, 4, 4])
     U = cr.Gauge(geometry)
-    U.read("../algorithms/confs/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % 1000)
+    U.read("../algorithms/configurations/beta_6.00_L4x8/beta_6.00_L4x8_conf_%d.h5" % 1000)
+    U_with_phase = U.apply_boundary_condition_periodic_quark()
     chi = cr.Fermion(geometry)
     chi.point_source([0, 0, 0, 0, 0, 0])
 
-    gflow = GFlow(U, chi, {"dt": 0.01, "niter": 100})
-    gflow.forward()
+    gflow = GFlow(U_with_phase, chi, {"dt": 0.01, "niter": 100})
+    U_flowed, xi = gflow.forward()
+    print(U_flowed.field[3,0,3,2,0,1,0].real)
     gflow.adjoint(gflow.chi)
     gflow.plot()
