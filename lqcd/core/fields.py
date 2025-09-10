@@ -305,6 +305,12 @@ class Gauge(Field):
             dst += (self.mu(fwdmu) * src.shift(fwdmu) + self.mu(bwdmu) * src.shift(bwdmu))
         return dst
 
+    def antihermitian_traceless(self):
+        for mu in range(self.Nl):
+            fwdmu = self.mu_num2st[mu][0]
+            self.set_mu(mu, self.mu(fwdmu).antihermitian_traceless())
+        return self
+
 
 class GaugeMu(Field):
     def __init__(self, geometry: QCD_geometry):
