@@ -63,6 +63,10 @@ class Field:
         result.field = xp.copy(self.field)
         return result
 
+    def save(self, filename):
+        xp = get_backend()
+        xp.save(filename, self.field)
+
 
 class Gauge(Field):
     def __init__(self, geometry: QCD_geometry):
