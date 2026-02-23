@@ -1,6 +1,6 @@
 from multiprocessing import Pool
 import lqcd.core as cr
-from lqcd.io import set_backend, get_backend
+from lqcd.io import set_backend, get_backend, set_gamma_convention, get_gamma_convention
 from lqcd.gauge import Smear as gSmear
 from lqcd.fermion import DiracOperator, Smear as qSmear
 from lqcd.algorithms import Inverter, GFlow
@@ -51,6 +51,9 @@ def propagator_parallelized_core(s, c, srcfull, x0, Inv, flavor):
     return Inv.invert(src, x0, flavor)
 
 
+def _worker_init(gamma_convention):
+    set_gamma_convention(gamma_convention)
+
 # full propagator parallelized
 # If the code is really used for production, I think I don't use the parallelization here but brute-force parallel the configurations.
 # Only around 2 times faster, though processes = 12.
@@ -59,7 +62,9 @@ def propagator_parallelized(Q, inv_params, srcfull, flavor):
     x0 = cr.Fermion(geometry)
     Inv = Inverter(Q, inv_params)
     prop = cr.Propagator(geometry)
-    with Pool(processes = 12) as pool:
+
+    gamma_convention = get_gamma_convention()
+    with Pool(processes = 12, initializer=_worker_init, initargs=(gamma_convention,)) as pool:
         pool_result = pool.starmap(propagator_parallelized_core, [(s, c, srcfull, x0, Inv, flavor) for s in range(4) for c in range(3)])
     for i in range(len(pool_result)):
         prop.set_Fermion(pool_result[i], i // 3, i % 3)

@@ -28,3 +28,14 @@ def set_backend(backend: Literal["numpy", "cupy"]):
         _BACKEND = torch
     else:
         raise ValueError('Backend must be "numpy", "cupy" or "torch"')
+
+
+# Define a global variable for the gamma convention
+_GAMMA_CONVENTION = None
+def get_gamma_convention():
+    global _GAMMA_CONVENTION
+    return _GAMMA_CONVENTION
+
+def set_gamma_convention(gamma_convention):
+    global _GAMMA_CONVENTION
+    _GAMMA_CONVENTION = gamma_convention

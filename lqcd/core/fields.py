@@ -2,7 +2,7 @@ import numbers
 import h5py as h5
 import scipy as sp
 from opt_einsum import contract
-from lqcd.io import get_backend
+from lqcd.io import get_backend, get_gamma_convention
 from lqcd.core.geometry import QCD_geometry
 import lqcd.core.core_funcs as rf
 
@@ -598,38 +598,56 @@ class Propagator(Field):
         result.field = xp.conjugate((xp.transpose(self.field, axes=(0,1,2,3,5,4,7,6))))
         return result
 
+    # For sequential source
+    def keep_one_time_slice(self, t):
+        result = Propagator(self.geometry)
+        result.field[t] = self.field[t]
+        return result
+
 
 class Gamma:
     def __init__(self, i, Nl=4):
+        gamma_convention = get_gamma_convention()
         if Nl == 4:
-            self.mat = self.gamma_4(i)
+            if gamma_convention == 'chroma':
+                self.mat = self.gamma_4_chroma(i)
+            elif gamma_convention == 'cvc':
+                self.mat = self.gamma_4_cvc(i)
+            elif gamma_convention == 'ukqcd':
+                self.mat = self.gamma_4_ukqcd(i)
         else:
             raise NotImplementedError("Only Nl=4 is supported")
 
-    def gamma_4(self, i):
+    # Chroma convention, my convention.
+    # Note on 2026.2.23: I think this is problematic: the code assumes txyz in the definition of the Dirac operator. To make sense, I can switch g0 and g4 in the future.
+    def gamma_4_chroma(self, i):
         xp = get_backend()
-
         g = xp.zeros((16, 4, 4), dtype=complex)
 
-        # # Chroma convention, my convention.
-        # g[0] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex)
-        # g[1] = xp.array([[0, 0, 0, 1j], [0, 0, 1j, 0], [0, -1j, 0, 0], [-1j, 0, 0, 0]], dtype=complex)
-        # g[2] = xp.array([[0, 0, 0, -1], [0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0]], dtype=complex)
-        # g[3] = xp.array([[0, 0, 1j, 0], [0, 0, 0, -1j], [-1j, 0, 0, 0], [0, 1j, 0, 0]], dtype=complex)
-        # g[4] = xp.array([[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=complex)
-        # g[5] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]], dtype=complex)
-        # g[6] = g[2] @ g[3] # -gamma1*gamma4*gamma5 (gamma2*gamma3)
-        # g[7] = g[3] @ g[1] # -gamma2*gamma4*gamma5 (gamma3*gamma1)
-        # g[8] = g[1] @ g[2] # -gamma3*gamma4*gamma5 (gamma1*gamma2)
-        # g[9] = g[1] @ g[4] # gamma1*gamma4
-        # g[10] = g[2] @ g[4] # gamma2*gamma4
-        # g[11] = g[3] @ g[4] # gamma3*gamma4
-        # g[12] = g[1] @ g[5] # gamma1*gamma5
-        # g[13] = g[2] @ g[5] # gamma2*gamma5
-        # g[14] = g[3] @ g[5] # gamma3*gamma5
-        # g[15] = g[4] @ g[5] # gamma4*gamma5
+        g[0] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex)
+        g[1] = xp.array([[0, 0, 0, 1j], [0, 0, 1j, 0], [0, -1j, 0, 0], [-1j, 0, 0, 0]], dtype=complex)
+        g[2] = xp.array([[0, 0, 0, -1], [0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0]], dtype=complex)
+        g[3] = xp.array([[0, 0, 1j, 0], [0, 0, 0, -1j], [-1j, 0, 0, 0], [0, 1j, 0, 0]], dtype=complex)
+        g[4] = xp.array([[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=complex)
+        g[5] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]], dtype=complex)
+        g[6] = g[2] @ g[3] # -gamma1*gamma4*gamma5 (gamma2*gamma3)
+        g[7] = g[3] @ g[1] # -gamma2*gamma4*gamma5 (gamma3*gamma1)
+        g[8] = g[1] @ g[2] # -gamma3*gamma4*gamma5 (gamma1*gamma2)
+        g[9] = g[1] @ g[4] # gamma1*gamma4
+        g[10] = g[2] @ g[4] # gamma2*gamma4
+        g[11] = g[3] @ g[4] # gamma3*gamma4
+        g[12] = g[1] @ g[5] # gamma1*gamma5
+        g[13] = g[2] @ g[5] # gamma2*gamma5
+        g[14] = g[3] @ g[5] # gamma3*gamma5
+        g[15] = g[4] @ g[5] # gamma4*gamma5
 
-        # CVC convention.
+        return g[i]
+
+    # CVC convention.
+    def gamma_4_cvc(self, i):
+        xp = get_backend()
+        g = xp.zeros((16, 4, 4), dtype=complex)
+
         g[0] = xp.array([[0, 0, -1, 0], [0, 0, 0, -1], [-1, 0, 0, 0], [0, -1, 0, 0]], dtype=complex) # gamma_0 = gamma_t
         g[1] = xp.array([[0, 0, 0, -1j], [0, 0, -1j, 0], [0, 1j, 0, 0], [1j, 0, 0, 0]], dtype=complex) # gamma_1 = gamma_x
         g[2] = xp.array([[0, 0, 0, -1], [0, 0, 1, 0], [0, 1, 0, 0], [-1, 0, 0, 0]], dtype=complex) # gamma_2 = gamma_y
@@ -646,6 +664,20 @@ class Gamma:
         g[13] = g[1] @ g[2]
         g[14] = g[1] @ g[3]
         g[15] = g[2] @ g[3]
+
+        return g[i]
+
+    # UKQCD convention.
+    def gamma_4_ukqcd(self, i):
+        xp = get_backend()
+        g = xp.zeros((16, 4, 4), dtype=complex)
+
+        g[0] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, -1, 0], [0, 0, 0, -1]], dtype=complex) # gamma_0 = gamma_t
+        g[1] = xp.array([[0, 0, 0, 1j], [0, 0, 1j, 0], [0, -1j, 0, 0], [-1j, 0, 0, 0]], dtype=complex) # gamma_1 = gamma_x
+        g[2] = xp.array([[0, 0, 0, 1], [0, 0, -1, 0], [0, -1, 0, 0], [1, 0, 0, 0]], dtype=complex) # gamma_2 = gamma_y
+        g[3] = xp.array([[0, 0, 1j, 0], [0, 0, 0, -1j], [-1j, 0, 0, 0], [0, 1j, 0, 0]], dtype=complex) # gamma_3 = gamma_z
+        g[4] = xp.array([[1, 0, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]], dtype=complex) # gamma_4 = id
+        g[5] = xp.array([[0, 0, 1, 0], [0, 0, 0, 1], [1, 0, 0, 0], [0, 1, 0, 0]], dtype=complex)
 
         return g[i]
 

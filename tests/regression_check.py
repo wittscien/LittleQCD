@@ -9,7 +9,7 @@
 
 #%%
 import lqcd.core as cr
-from lqcd.io import set_backend, get_backend
+from lqcd.io import set_backend, get_backend, set_gamma_convention
 from lqcd.gauge import Smear as gSmear
 from lqcd.fermion import DiracOperator, Smear as qSmear
 from lqcd.algorithms import Inverter, GFlow
@@ -27,6 +27,7 @@ if __name__ == "__main__":
     #%%
     # Initialization
     set_backend("numpy")
+    set_gamma_convention("cvc")
     xp = get_backend()
 
     # Gauge field

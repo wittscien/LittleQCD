@@ -1,11 +1,12 @@
 import lqcd.core as cr
-from lqcd.io import set_backend, get_backend
+from lqcd.io import set_backend, get_backend, set_gamma_convention
 from lqcd.fermion import DiracOperator
 import lqcd.utils as ut
 
 
 
 set_backend("numpy")
+set_gamma_convention("cvc")
 xp = get_backend()
 
 geometry = cr.QCD_geometry([8, 4, 4, 4])
