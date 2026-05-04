@@ -18,7 +18,21 @@ def bootstrap_relist(thing):
 
 def bootstrap_cov(thing):
     N = thing.shape[0] - 1
-    return np.cov(np.transpose(thing[1:])) * (N-1) / N
+    mean = thing[0]
+    X = thing - mean
+    N = thing.shape[0] - 1
+    C = np.einsum('ni, nj -> ij', X, X) / N
+    return C
+
+
+def jackknife_cov(thing):
+    N = thing.shape[0] - 1
+    mean = thing[0]
+    X = thing - mean
+    N = thing.shape[0] - 1
+    C = np.einsum('ni, nj -> ij', X, X) / N
+    C *= (N - 1)
+    return C
 
 
 def resamplelist(length,tparams):
@@ -42,6 +56,14 @@ def cal_err(thing,tech):
         return bootstrap_relist(thing)
     elif (tech == 'jackknife'):
         return jackknife_relist(thing)
+
+
+def cal_cov(thing,tech):
+    # Cannot use np.cov because we have to use thing[0]
+    if (tech == 'bootstrap'):
+        return bootstrap_cov(thing)
+    elif (tech == 'jackknife'):
+        return jackknife_cov(thing)
 
 
 def cal_mass(data,mtype='exp',tau=1):
