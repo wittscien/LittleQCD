@@ -43,6 +43,7 @@ class DiracOperator:
         return dst
 
     def twisted_mass(self, src, flavor):
+        # For heavy quarks, use the OS action.
         if flavor in ['u', 'c']:
             tau3_sign = 1
         elif flavor in ['d', 's']:

@@ -76,9 +76,9 @@ class Inverter:
 # twisted mass rotation
 def tm_rotation(src, flavor):
     xp = get_backend()
-    if flavor == 'u':
+    if flavor in ['u', 'c']:
         tau3_sign = 1
-    elif flavor == 'd':
+    elif flavor in ['d', 's']:
         tau3_sign = -1
     return ((1 / xp.sqrt(2)) * (1 + 1j * cr.Gamma(5) * tau3_sign)) * src
 
