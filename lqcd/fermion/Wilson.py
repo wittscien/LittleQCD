@@ -43,9 +43,9 @@ class DiracOperator:
         return dst
 
     def twisted_mass(self, src, flavor):
-        if flavor == 'u':
+        if flavor in ['u', 'c']:
             tau3_sign = 1
-        elif flavor == 'd':
+        elif flavor == ['d', 's']:
             tau3_sign = -1
         return 1j * self.mu * (cr.Gamma(5) * (tau3_sign * src))
 
