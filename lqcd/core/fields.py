@@ -131,11 +131,16 @@ class Gauge(Field):
                         for mu in range(self.Nl):
                             self.field[t, x, y, z, mu] = rf.proj_su3(self.field[t, x, y, z, mu])
 
-    def apply_boundary_condition_periodic_quark(self):
+    def apply_boundary_condition_theta(self):
         xp = get_backend()
         result = self.copy()
         phase_factor = xp.exp(1j * xp.pi / self.T)
         result.field[:,:,:,:,0,:,:] *= phase_factor # mu=0
+        return result
+
+    def apply_boundary_condition_minus_one(self):
+        result = self.copy()
+        result.field[self.T-1,:,:,:,0,:,:] *= -1
         return result
 
     def shift(self, m):
@@ -187,6 +192,16 @@ class Gauge(Field):
 
     def set_mu(self, mu, Umu):
         self.field[:,:,:,:,mu,:,:] = Umu.field
+
+    def U_minux_mu(self):
+        # U_{-mu}(x) = U^{dag}_{mu}(x-mu)
+        result = Gauge(self.geometry)
+        mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
+        for m in ['-t', '-x', '-y', '-z']:
+            mu = mu_st2num[m[1]]
+            temp_Umu = self.mu(m)
+            result.set_mu(mu, temp_Umu)
+        return result
 
     def plaquette(self, mu, nu):
         mu_neg = self.mu_neg[mu]
@@ -586,6 +601,21 @@ class Propagator(Field):
 
     def set_Fermion(self, src, s, c):
         self.field[:,:,:,:,:,s,:,c] = src.field
+
+    def shift(self, m):
+        xp = get_backend()
+        mu_st2num = {'t': 0, 'x': 1, 'y': 2, 'z': 3}
+        result = Propagator(self.geometry)
+        # S(x+mu)
+        if m in ['t', 'x', 'y', 'z']:
+            dir = +1
+            mu = mu_st2num[m]
+        # S(x-mu)
+        elif m in ['-t', '-x', '-y', '-z']:
+            dir = -1
+            mu = mu_st2num[m[1]]
+        result.field = xp.roll(self.field, -dir, axis=mu)
+        return result
 
     def trace_spin_color(self):
         result = Scalar(self.geometry)
